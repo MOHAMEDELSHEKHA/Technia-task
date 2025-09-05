@@ -1,8 +1,12 @@
-// src/App.jsx
+// src/Frontend/App.jsx
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import LoginPage from "./components/LoginPage"
 import Dashboard from "./pages/Dashboard"
+import HREmployees from "./pages/HREmployees"
+import HRSalaries from "./pages/HRSalaries"
+import RealEstateLeads from "./pages/RealEstateLeads"
+import RealEstateActions from "./pages/RealEstateActions"
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -66,7 +70,31 @@ const App = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard user={user} onLogout={handleLogout} />} />
+        {/* Dashboard Route */}
+        <Route 
+          path="/" 
+          element={<Dashboard user={user} onLogout={handleLogout} />} 
+        />
+        
+        {/* HR Module Routes */}
+        <Route 
+          path="/hr/employees" 
+          element={<HREmployees user={user} onLogout={handleLogout} />} 
+        />
+        <Route 
+          path="/hr/salaries" 
+          element={<HRSalaries user={user} onLogout={handleLogout} />} 
+        />
+        
+        {/* Real Estate Module Routes */}
+        <Route 
+          path="/real-estate/leads" 
+          element={<RealEstateLeads user={user} onLogout={handleLogout} />} 
+        />
+        <Route 
+          path="/real-estate/actions" 
+          element={<RealEstateActions user={user} onLogout={handleLogout} />} 
+        />
       </Routes>
     </Router>
   )

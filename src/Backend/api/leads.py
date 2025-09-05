@@ -19,6 +19,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List
+from typing import Dict
+
 
 from database import get_db
 from auth import get_current_user

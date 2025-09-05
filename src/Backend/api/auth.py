@@ -99,3 +99,26 @@ def health_check():
     - Useful for monitoring/deployment checks
     """
     return SuccessResponse(message="API is healthy")
+
+@router.get("/db-info")
+def get_database_info(db: Session = Depends(get_db)):
+    """Get current database information"""
+    try:
+        from sqlalchemy import text
+        
+        # Get database name
+        db_name = db.execute(text("SELECT DB_NAME() as database_name")).first()
+        
+        # Count records in key tables
+        employee_count = db.execute(text("SELECT COUNT(*) FROM employees_info")).scalar()
+        user_count = db.execute(text("SELECT COUNT(*) FROM user_info")).scalar()
+        
+        return {
+            "database_name": db_name[0] if db_name else "Unknown",
+            "record_counts": {
+                "employees": employee_count,
+                "users": user_count
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)}
