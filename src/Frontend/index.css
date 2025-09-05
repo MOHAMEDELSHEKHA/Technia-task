@@ -1,0 +1,74 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.animate-marquee {
+    display: flex;
+    animation: marquee 30s linear infinite; /* Adjust the speed */
+}
+
+.word-anim {
+    position: relative;
+    display: inline-block;
+    height: 1.5em; /* Adjust based on your font size */
+    overflow: hidden;
+    z-index: 10; /* Ensure this is above other content */
+}
+
+.word {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: slideWords 8s infinite;
+}
+
+.word:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.word:nth-child(2) {
+    animation-delay: 2s;
+}
+
+.word:nth-child(3) {
+    animation-delay: 4s;
+}
+
+.word:nth-child(4) {
+    animation-delay: 6s;
+}
+
+@keyframes slideWords {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}

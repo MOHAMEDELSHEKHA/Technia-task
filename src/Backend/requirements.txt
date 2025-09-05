@@ -1,0 +1,16 @@
+# Core FastAPI and web server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database
+sqlalchemy==2.0.23
+pyodbc==5.0.1
+
+# Request/Response validation
+pydantic[email]==2.5.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS support
+python-multipart==0.0.6
