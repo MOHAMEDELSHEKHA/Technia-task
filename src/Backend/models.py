@@ -238,14 +238,16 @@ class ClientMeeting(Base):
 
 class EmployeeInfo(Base):
     """
-    Company employees (different from system users)
-    WHY: HR needs to track all employees, not just those with system access
+    Company employees - matches your database schema exactly
     """
     __tablename__ = "employees_info"
     
+    # Composite primary key as in your database
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
-    employee_id = Column(Integer, primary_key=True)  # IDENTITY handled
-    contact_name = Column(String(50), nullable=False)
+    employee_id = Column(Integer, primary_key=True)  # IDENTITY column
+    
+    # Other columns matching your schema
+    contact_name = Column(String(50), nullable=False)  # NVARCHAR in DB
     business_phone = Column(String(50))
     personal_phone = Column(String(50))
     business_email = Column(String(50))

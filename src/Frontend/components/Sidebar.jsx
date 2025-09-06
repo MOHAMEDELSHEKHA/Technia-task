@@ -64,7 +64,7 @@ const Sidebar = ({ user, onLogout }) => {
     },
     {
       id: 'staff',
-      name: 'Staff',
+      name: 'Employees',
       icon: Users,
       path: '/hr/employees',
       moduleId: 2, // HR module

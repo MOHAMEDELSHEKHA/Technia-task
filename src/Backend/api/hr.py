@@ -36,6 +36,11 @@ from models import UserInfo, EmployeeInfo, EmployeeSalary
 router = APIRouter()
 
 # EMPLOYEE CRUD OPERATIONS
+# Updated hr.py - FINAL CORRECTED version for your database schema
+
+# FINAL WORKING hr.py - Employee creation that works with your IDENTITY column
+
+# Replace your create_employee function in hr.py with this:
 
 @router.post("/employees", response_model=EmployeeResponse)
 def create_employee(
@@ -43,71 +48,256 @@ def create_employee(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Create a new employee
-    
-    WHY THIS ENDPOINT:
-    - HR needs to add new company employees
-    - Employees are separate from system users
-    - Only contact_name is required
-    """
+    """Create a new employee using raw SQL (works with IDENTITY columns)"""
     require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'write')
     
-    # Create employee with auto-generated employee_id
-    employee = EmployeeInfo(
-        **employee_data.dict(),
-        company_domain=current_user.company_domain
-    )
-    
     try:
-        db.add(employee)
+        from sqlalchemy import text
+        
+        # Use raw SQL to insert employee (let SQL Server handle employee_id)
+        result = db.execute(text("""
+            INSERT INTO employees_info 
+            (company_domain, contact_name, business_phone, personal_phone, 
+             business_email, personal_email, gender, is_company_admin)
+            OUTPUT INSERTED.employee_id, INSERTED.date_added
+            VALUES (:company_domain, :contact_name, :business_phone, :personal_phone,
+                    :business_email, :personal_email, :gender, :is_company_admin)
+        """), {
+            'company_domain': current_user.company_domain,
+            'contact_name': employee_data.contact_name,
+            'business_phone': employee_data.business_phone,
+            'personal_phone': employee_data.personal_phone,
+            'business_email': employee_data.business_email,
+            'personal_email': employee_data.personal_email,
+            'gender': employee_data.gender,
+            'is_company_admin': 1 if employee_data.is_company_admin else 0
+        })
+        
+        # Get the generated values
+        row = result.fetchone()
+        employee_id = row[0]
+        date_added = row[1]
+        
         db.commit()
-        db.refresh(employee)
-        return employee
+        
+        # Return response in expected format
+        return EmployeeResponse(
+            employee_id=employee_id,
+            company_domain=current_user.company_domain,
+            contact_name=employee_data.contact_name,
+            business_phone=employee_data.business_phone,
+            personal_phone=employee_data.personal_phone,
+            business_email=employee_data.business_email,
+            personal_email=employee_data.personal_email,
+            gender=employee_data.gender,
+            is_company_admin=employee_data.is_company_admin,
+            date_added=date_added
+        )
+        
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create employee"
+            detail=f"Failed to create employee: {str(e)}"
         )
+# Alternative method using SQLAlchemy ORM (if the above doesn't work)
+
+# @router.post("/employees", response_model=EmployeeResponse)
+# def create_employee(
+#     employee_data: EmployeeCreate,
+#     current_user: UserInfo = Depends(get_current_user),
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Create a new employee with improved error handling
+#     """
+#     try:
+#         # Check permission first
+#         require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'write')
+        
+#         # Debug: Print the data being received
+#         print(f"Creating employee with data: {employee_data.dict()}")
+#         print(f"User company domain: {current_user.company_domain}")
+        
+#         # Create employee with auto-generated employee_id
+#         employee = EmployeeInfo(
+#             **employee_data.dict(),
+#             company_domain=current_user.company_domain
+#         )
+        
+#         # Debug: Print the employee object before saving
+#         print(f"Employee object: {employee.__dict__}")
+        
+#         db.add(employee)
+#         db.flush()  # This will assign the ID without committing
+        
+#         # Debug: Print employee after flush
+#         print(f"Employee after flush: {employee.__dict__}")
+        
+#         db.commit()
+#         db.refresh(employee)
+        
+#         # Debug: Print final employee
+#         print(f"Employee after commit: {employee.__dict__}")
+        
+#         return employee
+        
+#     except Exception as e:
+#         db.rollback()
+#         # Better error logging
+#         print(f"Error creating employee: {str(e)}")
+#         print(f"Error type: {type(e)}")
+#         import traceback
+#         print(f"Traceback: {traceback.format_exc()}")
+        
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to create employee: {str(e)}"
+#         )
+
+# @router.post("/employees", response_model=EmployeeResponse)
+# def create_employee(
+#     employee_data: EmployeeCreate,
+#     current_user: UserInfo = Depends(get_current_user),
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Create a new employee
+    
+#     WHY THIS ENDPOINT:
+#     - HR needs to add new company employees
+#     - Employees are separate from system users
+#     - Only contact_name is required
+#     """
+#     require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'write')
+    
+#     # Create employee with auto-generated employee_id
+#     employee = EmployeeInfo(
+#         **employee_data.dict(),
+#         company_domain=current_user.company_domain
+#     )
+    
+#     try:
+#         db.add(employee)
+#         db.commit()
+#         db.refresh(employee)
+#         return employee
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Failed to create employee"
+#         )
+
+# @router.get("/employees", response_model=List[EmployeeResponse])
+# def get_all_employees(
+#     current_user: UserInfo = Depends(get_current_user),
+#     db: Session = Depends(get_db)
+# ):
+#     """Get all employees for user's company"""
+#     require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'read')
+    
+#     employees = db.query(EmployeeInfo).filter(
+#         EmployeeInfo.company_domain == current_user.company_domain
+#     ).all()
+    
+#     return employees
+
+# @router.get("/employees/{employee_id}", response_model=EmployeeResponse)
+# def get_employee_by_id(
+#     employee_id: int,
+#     current_user: UserInfo = Depends(get_current_user),
+#     db: Session = Depends(get_db)
+# ):
+#     """Get specific employee"""
+#     require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'read')
+    
+#     employee = db.query(EmployeeInfo).filter(
+#         and_(
+#             EmployeeInfo.employee_id == employee_id,
+#             EmployeeInfo.company_domain == current_user.company_domain
+#         )
+#     ).first()
+    
+#     if not employee:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Employee not found"
+#         )
+    
+#     return employee
+
+# Updated get_all_employees function in hr.py with debugging
 
 @router.get("/employees", response_model=List[EmployeeResponse])
 def get_all_employees(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all employees for user's company"""
+    """Get all employees for user's company - WITH DEBUGGING"""
     require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'read')
     
-    employees = db.query(EmployeeInfo).filter(
-        EmployeeInfo.company_domain == current_user.company_domain
-    ).all()
-    
-    return employees
-
-@router.get("/employees/{employee_id}", response_model=EmployeeResponse)
-def get_employee_by_id(
-    employee_id: int,
-    current_user: UserInfo = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get specific employee"""
-    require_permission(db, current_user.id, Modules.HR, Features.EMPLOYEES, 'read')
-    
-    employee = db.query(EmployeeInfo).filter(
-        and_(
-            EmployeeInfo.employee_id == employee_id,
-            EmployeeInfo.company_domain == current_user.company_domain
-        )
-    ).first()
-    
-    if not employee:
+    try:
+        print(f"Getting employees for user: {current_user.username}")
+        print(f"User company domain: {current_user.company_domain}")
+        
+        # Method 1: Try with SQLAlchemy ORM
+        try:
+            employees = db.query(EmployeeInfo).filter(
+                EmployeeInfo.company_domain == current_user.company_domain
+            ).all()
+            
+            print(f"SQLAlchemy query found {len(employees)} employees")
+            for emp in employees:
+                print(f"  - ID: {emp.employee_id}, Name: {emp.contact_name}")
+            
+            if employees:
+                return employees
+                
+        except Exception as orm_error:
+            print(f"SQLAlchemy ORM failed: {orm_error}")
+        
+        # Method 2: Use raw SQL as fallback
+        from sqlalchemy import text
+        
+        result = db.execute(text("""
+            SELECT company_domain, employee_id, contact_name, business_phone, 
+                   personal_phone, business_email, personal_email, gender, 
+                   is_company_admin, user_uid, date_added
+            FROM employees_info 
+            WHERE company_domain = :company_domain
+            ORDER BY employee_id
+        """), {'company_domain': current_user.company_domain})
+        
+        employees_data = result.fetchall()
+        print(f"Raw SQL found {len(employees_data)} employees")
+        
+        # Convert to response format
+        employees_list = []
+        for row in employees_data:
+            employee = EmployeeResponse(
+                employee_id=row.employee_id,
+                company_domain=row.company_domain,
+                contact_name=row.contact_name,
+                business_phone=row.business_phone,
+                personal_phone=row.personal_phone,
+                business_email=row.business_email,
+                personal_email=row.personal_email,
+                gender=row.gender,
+                is_company_admin=bool(row.is_company_admin) if row.is_company_admin is not None else False,
+                date_added=row.date_added
+            )
+            employees_list.append(employee)
+            print(f"  - Converted: ID {employee.employee_id}, Name: {employee.contact_name}")
+        
+        return employees_list
+        
+    except Exception as e:
+        print(f"Error in get_all_employees: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve employees: {str(e)}"
         )
-    
-    return employee
 
 @router.put("/employees/{employee_id}", response_model=EmployeeResponse)
 def update_employee(

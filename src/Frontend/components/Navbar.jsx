@@ -53,7 +53,7 @@ const Navbar = ({ user, onLogout }) => {
         {/* Left side - Welcome message and date */}
         <div>
           <h1 className="text-lg font-medium text-gray-900">
-            Welcome, Mr. {user?.first_name} {user?.last_name}
+            Welcome, {user?.first_name} {user?.last_name}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Today is {getCurrentDate()}.

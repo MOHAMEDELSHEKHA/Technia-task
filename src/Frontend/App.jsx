@@ -1,4 +1,4 @@
-// src/Frontend/App.jsx
+// src/Frontend/App.jsx - Add these imports and routes
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import LoginPage from "./components/LoginPage"
@@ -7,6 +7,7 @@ import HREmployees from "./pages/HREmployees"
 import HRSalaries from "./pages/HRSalaries"
 import RealEstateLeads from "./pages/RealEstateLeads"
 import RealEstateActions from "./pages/RealEstateActions"
+import AddEmployee from "./pages/AddEmployee"  // Add this import
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -80,6 +81,10 @@ const App = () => {
         <Route 
           path="/hr/employees" 
           element={<HREmployees user={user} onLogout={handleLogout} />} 
+        />
+        <Route 
+          path="/hr/employees/add" 
+          element={<AddEmployee user={user} onLogout={handleLogout} />} 
         />
         <Route 
           path="/hr/salaries" 
