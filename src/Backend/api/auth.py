@@ -122,3 +122,29 @@ def get_database_info(db: Session = Depends(get_db)):
         }
     except Exception as e:
         return {"error": str(e)}
+    
+@router.get("/users", response_model=List[UserResponse])
+def get_users_for_assignment(
+    current_user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all users in the same company for lead assignment
+    
+    WHY THIS ENDPOINT:
+    - Allows assigning leads to team members
+    - Only shows users from the same company
+    - Used in lead creation and editing forms
+    
+    SECURITY:
+    - Only returns users from current user's company
+    - Requires authentication to access
+    - No sensitive data exposed (passwords excluded)
+    """
+    
+    # Get all users from the same company
+    users = db.query(UserInfo).filter(
+        UserInfo.company_domain == current_user.company_domain
+    ).all()
+    
+    return users

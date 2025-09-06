@@ -1,9 +1,11 @@
-// src/Frontend/pages/Dashboard.jsx
+// src/Frontend/pages/Dashboard.jsx - Updated with LeadsTable
 import React from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import Block1Dashboard from "../components/Block1Dashboard";
 import StaffListTable from "../components/StaffListTable";
+import SalariesTable from "../components/SalariesTable";
+import LeadsTable from "../components/LeadsTable";
 
 const Dashboard = ({ user, onLogout }) => {
   return (
@@ -20,8 +22,8 @@ const Dashboard = ({ user, onLogout }) => {
         <div className="flex-1 overflow-y-auto">
           <Block1Dashboard />
           <StaffListTable />
-          <StaffListTable />
-          <Block1Dashboard />
+          <SalariesTable />
+          <LeadsTable />
 
           {/* Main Dashboard Content */}
           <main className="p-6">
