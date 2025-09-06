@@ -1,14 +1,3 @@
-"""
-Database Models - Fixed to Match Exact Database Schema
-
-FIXES IMPLEMENTED:
-1. Proper composite primary keys
-2. Correct IDENTITY column handling
-3. Exact field mappings to database schema
-4. Proper foreign key relationships
-5. Correct data types and constraints
-"""
-
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, BigInteger, Date, ForeignKey, CheckConstraint, ForeignKeyConstraint
 from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER, BIT, MONEY
 from sqlalchemy.orm import relationship
@@ -17,7 +6,6 @@ from database import Base
 import uuid
 
 class Module(Base):
-    """Business modules (Real Estate, HR)"""
     __tablename__ = "modules"
     
     id = Column(Integer, primary_key=True)
@@ -25,12 +13,11 @@ class Module(Base):
     display_name = Column(String(100))
     description = Column(Text)
     available = Column(BIT)
-    comming_on = Column(Date)  # Note: keeping original typo from schema
+    comming_on = Column(Date)  
     color = Column(BigInteger)
     url = Column(Text)
 
 class ModuleFeature(Base):
-    """Features within each module"""
     __tablename__ = "module_features"
     
     module_id = Column(Integer, ForeignKey("modules.id"), primary_key=True)
@@ -39,7 +26,6 @@ class ModuleFeature(Base):
     display_name = Column(String(100))
 
 class CompanyInfo(Base):
-    """Company information for multi-tenant support"""
     __tablename__ = "company_info"
     
     company_domain = Column(String(100), primary_key=True)
@@ -51,7 +37,6 @@ class CompanyInfo(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class UserInfo(Base):
-    """System users who can log in"""
     __tablename__ = "user_info"
     
     id = Column(Integer, primary_key=True)  # IDENTITY(1,1)
@@ -72,7 +57,6 @@ class UserInfo(Base):
     )
 
 class UserRole(Base):
-    """Available roles per company and module"""
     __tablename__ = "user_roles"
     
     id = Column(Integer, primary_key=True)  # IDENTITY(1,1)
@@ -81,7 +65,6 @@ class UserRole(Base):
     name = Column(String(50), nullable=False)
 
 class UserRolePermission(Base):
-    """CRUD permissions for each role"""
     __tablename__ = "user_role_permissions"
     
     role_id = Column(Integer, ForeignKey("user_roles.id"), primary_key=True)
@@ -95,7 +78,6 @@ class UserRolePermission(Base):
     d_delete = Column(BIT, default=0)
 
 class UserRoleMapping(Base):
-    """User to role assignments"""
     __tablename__ = "user_role_mapping"
     
     user_id = Column(Integer, ForeignKey("user_info.id"), primary_key=True)
@@ -104,7 +86,6 @@ class UserRoleMapping(Base):
 # REAL ESTATE LOOKUP TABLES
 
 class LeadsStage(Base):
-    """Lead stages: Assigned, Not Assigned, Action Taken"""
     __tablename__ = "leads_stage"
     
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
@@ -116,7 +97,6 @@ class LeadsStage(Base):
     is_action_taken = Column(BIT)
 
 class LeadsStatus(Base):
-    """Lead temperature: Hot, Warm, Cold, New"""
     __tablename__ = "leads_status"
     
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
@@ -125,7 +105,6 @@ class LeadsStatus(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class LeadsType(Base):
-    """Lead source: Campaign, Cold Call, Personal"""
     __tablename__ = "leads_types"
     
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
@@ -134,7 +113,6 @@ class LeadsType(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class CallStatus(Base):
-    """Call outcomes: Scheduled, Answered, Rescheduled, Unanswered"""
     __tablename__ = "calls_status"
     
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
@@ -143,7 +121,6 @@ class CallStatus(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class MeetingStatus(Base):
-    """Meeting states: Scheduled, Done, Cancelled, Rescheduled"""
     __tablename__ = "meetings_status"
     
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
@@ -154,13 +131,12 @@ class MeetingStatus(Base):
 # MAIN BUSINESS DATA TABLES
 
 class LeadsInfo(Base):
-    """Customer leads - matches database schema exactly"""
     __tablename__ = "leads_info"
     
-    lead_id = Column(BigInteger, primary_key=True)  # IDENTITY(1,1)
+    lead_id = Column(BigInteger, primary_key=True)  
     company_domain = Column(String(100), nullable=False)
     lead_phone = Column(String(50), unique=True, nullable=False)
-    name = Column(String(50))  # NVARCHAR in DB
+    name = Column(String(50))  
     assigned_to = Column(Integer, ForeignKey("user_info.id"))
     email = Column(String(50))
     gender = Column(String(10))
@@ -171,10 +147,9 @@ class LeadsInfo(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class ClientCall(Base):
-    """Phone calls made to leads"""
     __tablename__ = "client_calls"
     
-    call_id = Column(Integer, primary_key=True)  # IDENTITY(1,1)
+    call_id = Column(Integer, primary_key=True) 
     assigned_to = Column(Integer, ForeignKey("user_info.id"))
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"))
     lead_id = Column(BigInteger, ForeignKey("leads_info.lead_id"))
@@ -183,10 +158,9 @@ class ClientCall(Base):
     date_added = Column(DateTime, default=func.getdate())
 
 class ClientMeeting(Base):
-    """Meetings scheduled with leads"""
     __tablename__ = "client_meetings"
     
-    meeting_id = Column(Integer, primary_key=True)  # IDENTITY(1,1)
+    meeting_id = Column(Integer, primary_key=True) 
     assigned_to = Column(Integer, ForeignKey("user_info.id"))
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"))
     lead_id = Column(BigInteger, ForeignKey("leads_info.lead_id"))
@@ -197,63 +171,41 @@ class ClientMeeting(Base):
 # HR TABLES - FIXED FOR EXACT DATABASE SCHEMA
 
 class EmployeeInfo(Base):
-    """
-    Company employees - FIXED to match database schema exactly
-    
-    CRITICAL FIXES:
-    - Composite primary key (company_domain, employee_id)
-    - employee_id is IDENTITY(1,1) but part of composite key
-    - Proper field mappings to match database
-    """
     __tablename__ = "employees_info"
     
-    # Composite primary key as defined in database
     company_domain = Column(String(100), ForeignKey("company_info.company_domain"), primary_key=True)
-    employee_id = Column(Integer, primary_key=True)  # IDENTITY(1,1)
+    employee_id = Column(Integer, primary_key=True)  
     
-    # Required field
-    contact_name = Column(String(50), nullable=False)  # NVARCHAR in DB
+    contact_name = Column(String(50), nullable=False)  
     
-    # Optional contact information
     business_phone = Column(String(50))
     personal_phone = Column(String(50))
     business_email = Column(String(50))
     personal_email = Column(String(50))
     
-    # Optional fields
     gender = Column(String(10))
     is_company_admin = Column(BIT)
-    user_uid = Column(UNIQUEIDENTIFIER)  # Could link to system user
+    user_uid = Column(UNIQUEIDENTIFIER)  
     
-    # Automatic timestamp
     date_added = Column(DateTime, default=func.getdate())
 
 class EmployeeSalary(Base):
-    """
-    Salary records by month/year - matches database schema exactly
-    
-    PROPER COMPOSITE PRIMARY KEY:
-    (company_domain, employee_id, due_year, due_month)
-    """
+
     __tablename__ = "employees_salaries"
     
-    # Composite primary key matching database
     company_domain = Column(String(100), primary_key=True)
     employee_id = Column(Integer, primary_key=True)
     due_year = Column(Integer, primary_key=True)
     due_month = Column(Integer, primary_key=True)
     
-    # Salary components
     gross_salary = Column(MONEY)
     insurance = Column(MONEY)
     taxes = Column(MONEY)
     net_salary = Column(MONEY)
     
-    # Due date and creation timestamp
     due_date = Column(Date)
     date_added = Column(DateTime, default=func.getdate())
     
-    # Foreign key constraint (composite) - FIXED VERSION
     __table_args__ = (
         ForeignKeyConstraint(
             ['company_domain', 'employee_id'], 

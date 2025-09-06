@@ -503,3 +503,103 @@ def get_lead_meetings(
         result.append(meeting_dict)
     
     return result
+
+@router.delete("/leads/{lead_id}/calls/{call_id}", response_model=SuccessResponse)
+def delete_call(
+    lead_id: int,
+    call_id: int,
+    current_user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a specific call"""
+    require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'delete')
+    
+    # Verify lead belongs to user's company
+    lead_exists = db.query(LeadsInfo).filter(
+        and_(
+            LeadsInfo.lead_id == lead_id,
+            LeadsInfo.company_domain == current_user.company_domain
+        )
+    ).first()
+    
+    if not lead_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found"
+        )
+    
+    # Find and delete the call
+    call = db.query(ClientCall).filter(
+        and_(
+            ClientCall.call_id == call_id,
+            ClientCall.lead_id == lead_id,
+            ClientCall.company_domain == current_user.company_domain
+        )
+    ).first()
+    
+    if not call:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Call not found"
+        )
+    
+    try:
+        db.delete(call)
+        db.commit()
+        return SuccessResponse(message="Call deleted successfully")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete call"
+        )
+
+@router.delete("/leads/{lead_id}/meetings/{meeting_id}", response_model=SuccessResponse)
+def delete_meeting(
+    lead_id: int,
+    meeting_id: int,
+    current_user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a specific meeting"""
+    require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'delete')
+    
+    # Verify lead belongs to user's company
+    lead_exists = db.query(LeadsInfo).filter(
+        and_(
+            LeadsInfo.lead_id == lead_id,
+            LeadsInfo.company_domain == current_user.company_domain
+        )
+    ).first()
+    
+    if not lead_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lead not found"
+        )
+    
+    # Find and delete the meeting
+    meeting = db.query(ClientMeeting).filter(
+        and_(
+            ClientMeeting.meeting_id == meeting_id,
+            ClientMeeting.lead_id == lead_id,
+            ClientMeeting.company_domain == current_user.company_domain
+        )
+    ).first()
+    
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Meeting not found"
+        )
+    
+    try:
+        db.delete(meeting)
+        db.commit()
+        return SuccessResponse(message="Meeting deleted successfully")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete meeting"
+        )

@@ -1,4 +1,4 @@
-// src/Frontend/pages/Dashboard.jsx - Updated with LeadsTable
+// src/Frontend/pages/Dashboard.jsx - Updated with ActionsTable
 import React from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -6,6 +6,7 @@ import Block1Dashboard from "../components/Block1Dashboard";
 import StaffListTable from "../components/StaffListTable";
 import SalariesTable from "../components/SalariesTable";
 import LeadsTable from "../components/LeadsTable";
+import ActionsTable from "../components/ActionsTable";
 
 const Dashboard = ({ user, onLogout }) => {
   return (
@@ -15,8 +16,18 @@ const Dashboard = ({ user, onLogout }) => {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Navbar */}
-        <Navbar user={user} onLogout={onLogout} />
+      
+        <header className="px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-medium text-gray-900">Salary Management</h1>
+              <p className="text-gray-600 mt-1">
+                Manage employee salary records and payroll
+              </p>
+            </div>
+          </div>
+        </header>
+        
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
@@ -24,6 +35,7 @@ const Dashboard = ({ user, onLogout }) => {
           <StaffListTable />
           <SalariesTable />
           <LeadsTable />
+          <ActionsTable />
 
           {/* Main Dashboard Content */}
           <main className="p-6">

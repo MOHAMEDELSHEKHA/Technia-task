@@ -45,22 +45,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicitly allow OPTIONS
     allow_headers=["*"],
 )
-
-# CORS Configuration
-# WHY CORS: Allows frontend (React) to call backend APIs from different port
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[
-#         "http://localhost:3000",  # React development server
-#         os.getenv("FRONTEND_URL", "http://localhost:3000")
-#     ],
-#     allow_credentials=True,  # Allow cookies and auth headers
-#     allow_methods=["*"],  # Allow all HTTP methods
-#     allow_headers=["*"],  # Allow all headers
-# )
-
-# Include API routers
-# WHY ROUTERS: Modular organization of endpoints
 app.include_router(
     auth.router, 
     prefix="/api/auth", 

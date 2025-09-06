@@ -1,4 +1,4 @@
-// src/Frontend/App.jsx - Updated with AddSalary route
+// src/Frontend/App.jsx - Updated with AddAction route
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import LoginPage from "./components/LoginPage"
@@ -8,8 +8,9 @@ import HRSalaries from "./pages/HRSalaries"
 import RealEstateLeads from "./pages/RealEstateLeads"
 import RealEstateActions from "./pages/RealEstateActions"
 import AddEmployee from "./pages/AddEmployee"
-import AddSalary from "./pages/AddSalary"  // Add this import
+import AddSalary from "./pages/AddSalary"
 import AddLead from "./pages/AddLead"
+import AddAction from "./pages/AddAction"
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -103,13 +104,16 @@ const App = () => {
           element={<RealEstateLeads user={user} onLogout={handleLogout} />} 
         />
         <Route 
-          path="real-estate/leads/add" 
+          path="/real-estate/leads/add" 
           element={<AddLead user={user} onLogout={handleLogout} />} 
         />
-        
         <Route 
           path="/real-estate/actions" 
           element={<RealEstateActions user={user} onLogout={handleLogout} />} 
+        />
+        <Route 
+          path="/real-estate/actions/add" 
+          element={<AddAction user={user} onLogout={handleLogout} />} 
         />
       </Routes>
     </Router>

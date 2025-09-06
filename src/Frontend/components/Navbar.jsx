@@ -48,11 +48,10 @@ const Navbar = ({ user, onLogout }) => {
   };
 
   return (
-    <div className=" px-6 py-8">
-      <div className="flex items-center justify-between">
-        {/* Left side - Welcome message and date */}
+    <div className=" px-6 py-8 sm:px-6">
+      <div className="flex items-center justify-between ">
         <div>
-          <h1 className="text-lg font-medium text-gray-900">
+          <h1 className="text-lg font-medium text-gray-900 sm:px-6">
             Welcome, {user?.first_name} {user?.last_name}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
