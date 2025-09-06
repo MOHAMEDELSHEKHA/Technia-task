@@ -1,18 +1,20 @@
-// src/Frontend/pages/HRSalaries.jsx - Complete Salary Management
+// src/Frontend/pages/HRSalaries.jsx - Enhanced with Complete Database Integration
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Plus, Trash2, Settings, AlertTriangle, Save, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Settings, AlertTriangle, Save, DollarSign, TrendingUp, Users, Calendar } from 'lucide-react';
 
 const HRSalaries = ({ user, onLogout }) => {
   const [salaries, setSalaries] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSalary, setSelectedSalary] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [salaryToDelete, setSalaryToDelete] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [editLoading, setEditLoading] = useState(false);
@@ -26,6 +28,7 @@ const HRSalaries = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchData();
+    fetchSalarySummary();
   }, []);
 
   const fetchPermissions = async () => {
@@ -88,13 +91,29 @@ const HRSalaries = ({ user, onLogout }) => {
     }
   };
 
+  const fetchSalarySummary = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('http://localhost:8000/api/hr/salaries/summary', {
+        headers: { 'Authorization': `Basic ${token}` },
+      });
+
+      if (response.ok) {
+        const summaryData = await response.json();
+        setSummary(summaryData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch salary summary:', error);
+    }
+  };
+
   const getEmployeeName = (employeeId) => {
     const employee = employees.find(emp => emp.employee_id === employeeId);
     return employee ? employee.contact_name : `Employee ${employeeId}`;
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
+    if (!amount) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -138,6 +157,9 @@ const HRSalaries = ({ user, onLogout }) => {
         ));
         setShowDeleteModal(false);
         setSalaryToDelete(null);
+        
+        // Refresh summary
+        fetchSalarySummary();
       } else if (response.status === 403) {
         alert('You do not have permission to delete salary records');
       } else {
@@ -211,6 +233,9 @@ const HRSalaries = ({ user, onLogout }) => {
         ));
         setShowEditModal(false);
         setSelectedSalary(null);
+        
+        // Refresh summary
+        fetchSalarySummary();
       } else if (response.status === 403) {
         setEditError('You do not have permission to edit salary records');
       } else {
@@ -231,6 +256,120 @@ const HRSalaries = ({ user, onLogout }) => {
       return;
     }
     navigate('/hr/salaries/add');
+  };
+
+  // Summary Modal
+  const SummaryModal = () => {
+    if (!showSummaryModal || !summary) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-auto transform transition-all max-h-screen overflow-y-auto">
+          <div className="text-center pt-8 pb-6 px-8">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">Salary Summary</h2>
+            <p className="text-sm text-gray-500">Company payroll overview and statistics</p>
+          </div>
+
+          <div className="px-8 pb-8">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="flex items-center">
+                  <Users className="w-6 h-6 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Employee Coverage</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {summary.summary.salary_coverage_percentage}%
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {summary.summary.employees_with_salaries} of {summary.summary.total_employees} employees
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-xl">
+                <div className="flex items-center">
+                  <DollarSign className="w-6 h-6 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Payroll</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(summary.financial_summary.total_net_payroll)}
+                    </p>
+                    <p className="text-xs text-gray-500">Net payroll to date</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-xl">
+                <div className="flex items-center">
+                  <Calendar className="w-6 h-6 text-purple-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Pay Periods</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {summary.summary.unique_pay_periods}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {summary.period_range.earliest_year} - {summary.period_range.latest_year}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 p-4 rounded-xl">
+                <div className="flex items-center">
+                  <TrendingUp className="w-6 h-6 text-orange-600 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Avg Net Salary</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(summary.financial_summary.average_net_salary)}
+                    </p>
+                    <p className="text-xs text-gray-500">Per employee</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Records */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Salary Records</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {summary.recent_salary_records.length > 0 ? (
+                  summary.recent_salary_records.map((record, index) => (
+                    <div key={index} className="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{record.employee_name}</p>
+                        <p className="text-xs text-gray-600">{record.period}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">
+                          {formatCurrency(record.net_salary)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(record.date_added).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No recent salary records</p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowSummaryModal(false)}
+              className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Delete Confirmation Modal
@@ -301,80 +440,88 @@ const HRSalaries = ({ user, onLogout }) => {
               </div>
             )}
 
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Employee</span>
-                  <span className="text-sm text-gray-900 font-medium">{getEmployeeName(selectedSalary.employee_id)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Period</span>
-                  <span className="text-sm text-gray-900">{formatPeriod(selectedSalary.due_year, selectedSalary.due_month)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Gross Salary</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="gross_salary"
-                    value={editFormData.gross_salary}
-                    onChange={handleEditInputChange}
-                    placeholder="0.00"
-                    className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-32"
-                  />
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Insurance</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="insurance"
-                    value={editFormData.insurance}
-                    onChange={handleEditInputChange}
-                    placeholder="0.00"
-                    className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-32"
-                  />
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Taxes</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="taxes"
-                    value={editFormData.taxes}
-                    onChange={handleEditInputChange}
-                    placeholder="0.00"
-                    className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-32"
-                  />
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Net Salary</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="net_salary"
-                    value={editFormData.net_salary}
-                    onChange={handleEditInputChange}
-                    placeholder="0.00"
-                    className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-32"
-                  />
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm font-medium text-gray-600">Due Date</span>
-                  <input
-                    type="date"
-                    name="due_date"
-                    value={editFormData.due_date}
-                    onChange={handleEditInputChange}
-                    className="text-sm text-gray-900 bg-transparent border-none outline-none"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Employee</label>
+                <input
+                  type="text"
+                  value={getEmployeeName(selectedSalary.employee_id)}
+                  disabled
+                  className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Period</label>
+                <input
+                  type="text"
+                  value={formatPeriod(selectedSalary.due_year, selectedSalary.due_month)}
+                  disabled
+                  className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Gross Salary</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="gross_salary"
+                  value={editFormData.gross_salary}
+                  onChange={handleEditInputChange}
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Insurance</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="insurance"
+                  value={editFormData.insurance}
+                  onChange={handleEditInputChange}
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Taxes</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="taxes"
+                  value={editFormData.taxes}
+                  onChange={handleEditInputChange}
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Net Salary</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="net_salary"
+                  value={editFormData.net_salary}
+                  onChange={handleEditInputChange}
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Due Date</label>
+                <input
+                  type="date"
+                  name="due_date"
+                  value={editFormData.due_date}
+                  onChange={handleEditInputChange}
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                />
               </div>
             </div>
 
@@ -421,7 +568,7 @@ const HRSalaries = ({ user, onLogout }) => {
             <p className="text-sm text-gray-500">View salary information</p>
           </div>
 
-          <div className="px-8 pb-8 space-y-4 max-h-96 overflow-y-auto">
+          <div className="px-8 pb-8">
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm font-medium text-gray-600">Employee</span>
@@ -460,28 +607,28 @@ const HRSalaries = ({ user, onLogout }) => {
                 </span>
               </div>
             </div>
-          </div>
-          
-          <div className="px-8 pb-8 space-y-3">
-            {permissions.canEdit && (
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  handleEditClick(selectedSalary);
-                }}
-                className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-800 transition-colors flex items-center justify-center"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Edit Salary
-              </button>
-            )}
             
-            <button
-              onClick={() => setShowModal(false)}
-              className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-            >
-              Close
-            </button>
+            <div className="mt-8 space-y-3">
+              {permissions.canEdit && (
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    handleEditClick(selectedSalary);
+                  }}
+                  className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-800 transition-colors flex items-center justify-center"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Salary
+                </button>
+              )}
+              
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -537,6 +684,56 @@ const HRSalaries = ({ user, onLogout }) => {
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
+            {/* Summary Stats */}
+            {summary && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="flex items-center">
+                    <Users className="w-8 h-8 text-blue-500 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Total Records</p>
+                      <p className="text-xl font-semibold">{summary.summary.total_salary_records}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="flex items-center">
+                    <DollarSign className="w-8 h-8 text-green-500 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Avg Net Salary</p>
+                      <p className="text-xl font-semibold">{formatCurrency(summary.financial_summary.average_net_salary)}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="flex items-center">
+                    <TrendingUp className="w-8 h-8 text-purple-500 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">Coverage</p>
+                      <p className="text-xl font-semibold">{summary.summary.salary_coverage_percentage}%</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <button
+                    onClick={() => setShowSummaryModal(true)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center">
+                      <Calendar className="w-8 h-8 text-orange-500 mr-3" />
+                      <div>
+                        <p className="text-sm text-gray-600">View Details</p>
+                        <p className="text-xl font-semibold">Summary</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="px-6 py-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">All Salary Records</h2>
@@ -659,8 +856,10 @@ const HRSalaries = ({ user, onLogout }) => {
       <SalaryModal />
       <DeleteModal />
       <EditModal />
+      <SummaryModal />
     </div>
   );
 };
 
 export default HRSalaries;
+                

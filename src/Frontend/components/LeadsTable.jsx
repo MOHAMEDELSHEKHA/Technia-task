@@ -1,15 +1,16 @@
-// src/Frontend/components/LeadsTable.jsx
+// src/Frontend/components/LeadsTable.jsx - Enhanced with Lead Types
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const LeadsTable = () => {
   const [leads, setLeads] = useState([]);
   const [users, setUsers] = useState([]);
+  const [leadTypes, setLeadTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch leads and users data on component mount
+  // Fetch leads, users, and lead types data on component mount
   useEffect(() => {
     fetchData();
   }, []);
@@ -18,14 +19,17 @@ const LeadsTable = () => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // Fetch both leads and users for assigned_to resolution
-      const [leadsResponse, usersResponse] = await Promise.all([
+      // Fetch leads, users, and lead types for assignment resolution
+      const [leadsResponse, usersResponse, typesResponse] = await Promise.all([
         fetch('http://localhost:8000/api/real-estate/leads', {
           headers: { 'Authorization': `Basic ${token}` },
         }),
         fetch('http://localhost:8000/api/auth/users', {
           headers: { 'Authorization': `Basic ${token}` },
-        }).catch(() => ({ ok: false })) // Fallback if users endpoint doesn't exist
+        }).catch(() => ({ ok: false })), // Fallback if users endpoint doesn't exist
+        fetch('http://localhost:8000/api/real-estate/lookup/types', {
+          headers: { 'Authorization': `Basic ${token}` },
+        }).catch(() => ({ ok: false })) // Fallback if types endpoint doesn't exist
       ]);
 
       if (leadsResponse.ok) {
@@ -35,6 +39,11 @@ const LeadsTable = () => {
         if (usersResponse.ok) {
           const usersData = await usersResponse.json();
           setUsers(usersData);
+        }
+
+        if (typesResponse.ok) {
+          const typesData = await typesResponse.json();
+          setLeadTypes(typesData);
         }
       } else if (leadsResponse.status === 403) {
         setError('You do not have permission to view leads');
@@ -54,6 +63,13 @@ const LeadsTable = () => {
     if (!userId) return 'Unassigned';
     const user = users.find(u => u.id === userId);
     return user ? `${user.first_name} ${user.last_name}` : `User ${userId}`;
+  };
+
+  // Get lead type name by ID
+  const getLeadTypeName = (typeId) => {
+    if (!typeId) return 'Not specified';
+    const type = leadTypes.find(t => t.id === typeId);
+    return type ? type.name : `Type ${typeId}`;
   };
 
   // Format phone number
@@ -83,6 +99,7 @@ const LeadsTable = () => {
                     <div className="h-4 bg-gray-200 rounded w-48"></div>
                     <div className="h-4 bg-gray-200 rounded w-24"></div>
                     <div className="h-4 bg-gray-200 rounded w-40"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
                   </div>
                 ))}
               </div>
@@ -139,6 +156,9 @@ const LeadsTable = () => {
                     Phone
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assigned To
                   </th>
                 </tr>
@@ -168,6 +188,13 @@ const LeadsTable = () => {
                         </div>
                       </td>
                       
+                      {/* Lead Type */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {getLeadTypeName(lead.lead_type)}
+                        </div>
+                      </td>
+                      
                       {/* Assigned To */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
@@ -178,7 +205,7 @@ const LeadsTable = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center">
+                    <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <p className="text-sm">No leads data available</p>
                         <p className="text-xs mt-1">There are no leads to display at this time.</p>

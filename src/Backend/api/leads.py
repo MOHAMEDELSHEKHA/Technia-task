@@ -1,10 +1,10 @@
 """
-Real Estate Module API Endpoints
+Real Estate Module API Endpoints - Enhanced with Status Lookups
 
 WHY THIS FILE EXISTS:
 - Handles all lead management operations (CRUD)
 - Manages calls and meetings (actions on leads)
-- Provides lookup data for dropdowns
+- Provides lookup data for dropdowns with proper status names
 - Enforces permissions on every operation
 - Scopes all data to user's company
 
@@ -103,6 +103,48 @@ def get_lead_types(
             company_domain=lead_type.company_domain
         )
         for lead_type in types
+    ]
+
+@router.get("/lookup/call-statuses", response_model=List[LookupResponse])
+def get_call_statuses(
+    current_user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all call statuses for user's company"""
+    require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
+    
+    statuses = db.query(CallStatus).filter(
+        CallStatus.company_domain == current_user.company_domain
+    ).all()
+    
+    return [
+        LookupResponse(
+            id=status.id,
+            name=status.call_status,
+            company_domain=status.company_domain
+        )
+        for status in statuses
+    ]
+
+@router.get("/lookup/meeting-statuses", response_model=List[LookupResponse])
+def get_meeting_statuses(
+    current_user: UserInfo = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all meeting statuses for user's company"""
+    require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
+    
+    statuses = db.query(MeetingStatus).filter(
+        MeetingStatus.company_domain == current_user.company_domain
+    ).all()
+    
+    return [
+        LookupResponse(
+            id=status.id,
+            name=status.meeting_status,
+            company_domain=status.company_domain
+        )
+        for status in statuses
     ]
 
 # LEAD CRUD OPERATIONS
@@ -358,13 +400,13 @@ def add_meeting_to_lead(
             detail="Failed to create meeting record"
         )
 
-@router.get("/leads/{lead_id}/calls", response_model=List[CallResponse])
+@router.get("/leads/{lead_id}/calls", response_model=List[Dict])
 def get_lead_calls(
     lead_id: int,
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all calls for a specific lead"""
+    """Get all calls for a specific lead with status names"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
     # Verify lead belongs to user's company
@@ -381,19 +423,42 @@ def get_lead_calls(
             detail="Lead not found"
         )
     
+    # Get calls with status names
     calls = db.query(ClientCall).filter(
         ClientCall.lead_id == lead_id
     ).all()
     
-    return calls
+    # Get call statuses for lookup
+    call_statuses = db.query(CallStatus).filter(
+        CallStatus.company_domain == current_user.company_domain
+    ).all()
+    
+    status_map = {cs.id: cs.call_status for cs in call_statuses}
+    
+    # Return calls with status names
+    result = []
+    for call in calls:
+        call_dict = {
+            "call_id": call.call_id,
+            "call_date": call.call_date,
+            "call_status": call.call_status,
+            "call_status_name": status_map.get(call.call_status, "Unknown"),
+            "assigned_to": call.assigned_to,
+            "lead_id": call.lead_id,
+            "company_domain": call.company_domain,
+            "date_added": call.date_added
+        }
+        result.append(call_dict)
+    
+    return result
 
-@router.get("/leads/{lead_id}/meetings", response_model=List[MeetingResponse])
+@router.get("/leads/{lead_id}/meetings", response_model=List[Dict])
 def get_lead_meetings(
     lead_id: int,
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all meetings for a specific lead"""
+    """Get all meetings for a specific lead with status names"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
     # Verify lead belongs to user's company
@@ -410,8 +475,31 @@ def get_lead_meetings(
             detail="Lead not found"
         )
     
+    # Get meetings with status names
     meetings = db.query(ClientMeeting).filter(
         ClientMeeting.lead_id == lead_id
     ).all()
     
-    return meetings
+    # Get meeting statuses for lookup
+    meeting_statuses = db.query(MeetingStatus).filter(
+        MeetingStatus.company_domain == current_user.company_domain
+    ).all()
+    
+    status_map = {ms.id: ms.meeting_status for ms in meeting_statuses}
+    
+    # Return meetings with status names
+    result = []
+    for meeting in meetings:
+        meeting_dict = {
+            "meeting_id": meeting.meeting_id,
+            "meeting_date": meeting.meeting_date,
+            "meeting_status": meeting.meeting_status,
+            "meeting_status_name": status_map.get(meeting.meeting_status, "Unknown"),
+            "assigned_to": meeting.assigned_to,
+            "lead_id": meeting.lead_id,
+            "company_domain": meeting.company_domain,
+            "date_added": meeting.date_added
+        }
+        result.append(meeting_dict)
+    
+    return result
