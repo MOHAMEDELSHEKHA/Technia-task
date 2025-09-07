@@ -1,4 +1,3 @@
-// src/Frontend/components/LeadsTable.jsx - Enhanced with Lead Types
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,9 +7,9 @@ const LeadsTable = () => {
   const [leadTypes, setLeadTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch leads, users, and lead types data on component mount
   useEffect(() => {
     fetchData();
   }, []);
@@ -26,10 +25,10 @@ const LeadsTable = () => {
         }),
         fetch('http://localhost:8000/api/auth/users', {
           headers: { 'Authorization': `Basic ${token}` },
-        }).catch(() => ({ ok: false })), // Fallback if users endpoint doesn't exist
+        }).catch(() => ({ ok: false })), 
         fetch('http://localhost:8000/api/real-estate/lookup/types', {
           headers: { 'Authorization': `Basic ${token}` },
-        }).catch(() => ({ ok: false })) // Fallback if types endpoint doesn't exist
+        }).catch(() => ({ ok: false })) 
       ]);
 
       if (leadsResponse.ok) {
@@ -46,6 +45,7 @@ const LeadsTable = () => {
           setLeadTypes(typesData);
         }
       } else if (leadsResponse.status === 403) {
+        setHasPermission(false);
         setError('You do not have permission to view leads');
       } else {
         setError('Failed to fetch leads data');
@@ -58,27 +58,23 @@ const LeadsTable = () => {
     }
   };
 
-  // Get user name by ID
   const getUserName = (userId) => {
     if (!userId) return 'Unassigned';
     const user = users.find(u => u.id === userId);
     return user ? `${user.first_name} ${user.last_name}` : `User ${userId}`;
   };
 
-  // Get lead type name by ID
   const getLeadTypeName = (typeId) => {
     if (!typeId) return 'Not specified';
     const type = leadTypes.find(t => t.id === typeId);
     return type ? type.name : `Type ${typeId}`;
   };
 
-  // Format phone number
   const formatPhone = (phone) => {
     if (!phone) return 'N/A';
     return phone;
   };
 
-  // Get only the last 5 lead records (most recent)
   const displayData = leads.slice(-5);
 
   const handleViewAllLeads = () => {
@@ -110,6 +106,10 @@ const LeadsTable = () => {
     );
   }
 
+  if (!hasPermission) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="py-4 px-4 sm:px-6">
@@ -128,8 +128,7 @@ const LeadsTable = () => {
   return (
     <div className="py-4 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900">Recent Leads</h2>
             <button
@@ -140,10 +139,8 @@ const LeadsTable = () => {
             </button>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
-              {/* Table Header */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -164,38 +161,32 @@ const LeadsTable = () => {
                 </tr>
               </thead>
 
-              {/* Table Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayData.length > 0 ? (
                   displayData.map((lead, index) => (
                     <tr key={lead.lead_id || index} className="hover:bg-gray-50 transition-colors">
-                      {/* Serial Number */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {String(index + 1).padStart(2, '0')}
                       </td>
                       
-                      {/* Lead Name */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {lead.name || 'N/A'}
                         </div>
                       </td>
                       
-                      {/* Phone */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {formatPhone(lead.lead_phone)}
                         </div>
                       </td>
                       
-                      {/* Lead Type */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {getLeadTypeName(lead.lead_type)}
                         </div>
                       </td>
                       
-                      {/* Assigned To */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {getUserName(lead.assigned_to)}
@@ -217,7 +208,6 @@ const LeadsTable = () => {
             </table>
           </div>
 
-          {/* View All Button */}
           <div className="px-6 py-4 border-t border-gray-200">
             <button
               onClick={handleViewAllLeads}

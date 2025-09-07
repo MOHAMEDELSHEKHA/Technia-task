@@ -1,5 +1,4 @@
-// src/Frontend/pages/RealEstateLeads.jsx - Enhanced with Consistent Design & Action Scheduling
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { Plus, Trash2, Settings, AlertTriangle, Save, UserCheck, Phone, Calendar, Clock, X } from 'lucide-react';
@@ -19,11 +18,10 @@ const RealEstateLeads = ({ user, onLogout }) => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showActionModal, setShowActionModal] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [actionFormData, setActionFormData] = useState({
-    action_type: '', // 'call' or 'meeting'
+    action_type: '', 
     date: '',
     time: '',
     status_id: ''
@@ -34,6 +32,11 @@ const RealEstateLeads = ({ user, onLogout }) => {
   const [actionError, setActionError] = useState(null);
   const [permissions, setPermissions] = useState({});
   const [actionsLoading, setActionsLoading] = useState(false);
+  const [showActionForm, setShowActionForm] = useState(false);
+  
+  // Add ref for scroll position
+  const editModalScrollRef = useRef(null);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,7 +82,6 @@ const RealEstateLeads = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // Fetch all required data
       const [leadsResponse, usersResponse, typesResponse, statusesResponse, stagesResponse, callStatusesResponse, meetingStatusesResponse] = await Promise.all([
         fetch('http://localhost:8000/api/real-estate/leads', {
           headers: { 'Authorization': `Basic ${token}` },
@@ -225,7 +227,6 @@ const RealEstateLeads = ({ user, onLogout }) => {
     setSelectedLead(lead);
     setShowModal(true);
     
-    // Fetch actions for this lead
     await fetchLeadActions(lead.lead_id);
   };
 
@@ -286,23 +287,59 @@ const RealEstateLeads = ({ user, onLogout }) => {
     setSelectedLead(lead);
     setShowEditModal(true);
     setEditError(null);
+    setShowActionForm(false);
+    setActionFormData({
+      action_type: '', 
+      date: '',
+      time: '',
+      status_id: ''
+    });
+    setActionError(null);
   };
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    const currentScrollTop = editModalScrollRef.current?.scrollTop || 0;
+    
+    setEditFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      
+      if (name === 'lead_stage' && value === '3' && permissions.canWriteActions) {
+        setShowActionForm(true);
+      } else if (name === 'lead_stage' && value !== '3') {
+        setShowActionForm(false);
+        setActionFormData({
+          action_type: '', 
+          date: '',
+          time: '',
+          status_id: ''
+        });
+        setActionError(null);
+      }
+      
+      return newData;
+    });
+
+    setTimeout(() => {
+      if (editModalScrollRef.current) {
+        editModalScrollRef.current.scrollTop = currentScrollTop;
+      }
+    }, 0);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setEditLoading(true);
     setEditError(null);
+    setActionError(null);
 
     try {
       const token = localStorage.getItem('auth_token');
+      
       const response = await fetch(
         `http://localhost:8000/api/real-estate/leads/${selectedLead.lead_id}`,
         {
@@ -315,30 +352,91 @@ const RealEstateLeads = ({ user, onLogout }) => {
         }
       );
 
-      if (response.ok) {
-        const updatedLead = await response.json();
-        setLeads(leads.map(lead => 
-          lead.lead_id === selectedLead.lead_id ? updatedLead : lead
-        ));
-        setShowEditModal(false);
-        setSelectedLead(null);
-        
-        // If lead stage changed to "Action Taken" and user can write actions
-        if (editFormData.lead_stage === 3 && permissions.canWriteActions) {
-          setActionFormData({
-            action_type: '',
-            date: '',
-            time: '',
-            status_id: ''
-          });
-          setShowActionModal(true);
+      if (!response.ok) {
+        if (response.status === 403) {
+          setEditError('You do not have permission to edit leads');
+          return;
+        } else {
+          const errorData = await response.json();
+          setEditError(errorData.detail || 'Failed to update lead');
+          return;
         }
-      } else if (response.status === 403) {
-        setEditError('You do not have permission to edit leads');
-      } else {
-        const errorData = await response.json();
-        setEditError(errorData.detail || 'Failed to update lead');
       }
+
+      const updatedLead = await response.json();
+      
+      setLeads(leads.map(lead => 
+        lead.lead_id === selectedLead.lead_id ? updatedLead : lead
+      ));
+
+      if (editFormData.lead_stage === '3' && permissions.canWriteActions) {
+        if (!actionFormData.action_type || !actionFormData.date || !actionFormData.time || !actionFormData.status_id) {
+          setActionError('All action fields are required when setting stage to Action Taken');
+          return;
+        }
+
+        try {
+          const dateTime = new Date(`${actionFormData.date}T${actionFormData.time}`).toISOString();
+          
+          const endpoint = actionFormData.action_type === 'call' 
+            ? `http://localhost:8000/api/real-estate/leads/${selectedLead.lead_id}/calls`
+            : `http://localhost:8000/api/real-estate/leads/${selectedLead.lead_id}/meetings`;
+
+          const bodyData = actionFormData.action_type === 'call'
+            ? {
+                call_date: dateTime,
+                call_status: parseInt(actionFormData.status_id)
+              }
+            : {
+                meeting_date: dateTime,
+                meeting_status: parseInt(actionFormData.status_id)
+              };
+
+          const actionResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Basic ${token}`,
+            },
+            body: JSON.stringify(bodyData)
+          });
+
+          if (!actionResponse.ok) {
+            if (actionResponse.status === 403) {
+              setActionError('You do not have permission to create actions');
+              return;
+            } else {
+              const errorData = await actionResponse.json();
+              setActionError(errorData.detail || 'Failed to create action');
+              return;
+            }
+          }
+
+          console.log('Action created successfully');
+          
+        } catch (actionError) {
+          console.error('Failed to create action:', actionError);
+          setActionError('Failed to create action. Please try again.');
+          return;
+        }
+      }
+
+   
+      setShowEditModal(false);
+      setSelectedLead(null);
+      setEditError(null);
+      setActionError(null);
+      setActionFormData({
+        action_type: '',
+        date: '',
+        time: '',
+        status_id: ''
+      });
+
+      if (showModal) {
+        await fetchLeadActions(selectedLead.lead_id);
+      }
+
     } catch (error) {
       console.error('Failed to update lead:', error);
       setEditError('Failed to update lead. Please try again.');
@@ -349,75 +447,19 @@ const RealEstateLeads = ({ user, onLogout }) => {
 
   const handleActionInputChange = (e) => {
     const { name, value } = e.target;
+    
+    const currentScrollTop = editModalScrollRef.current?.scrollTop || 0;
+    
     setActionFormData(prev => ({
       ...prev,
       [name]: value
     }));
-  };
 
-  const handleActionSubmit = async (e) => {
-    e.preventDefault();
-    setActionLoading(true);
-    setActionError(null);
-
-    if (!actionFormData.action_type || !actionFormData.date || !actionFormData.time || !actionFormData.status_id) {
-      setActionError('All fields are required');
-      setActionLoading(false);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const dateTime = new Date(`${actionFormData.date}T${actionFormData.time}`).toISOString();
-      
-      const endpoint = actionFormData.action_type === 'call' 
-        ? `http://localhost:8000/api/real-estate/leads/${selectedLead.lead_id}/calls`
-        : `http://localhost:8000/api/real-estate/leads/${selectedLead.lead_id}/meetings`;
-
-      const bodyData = actionFormData.action_type === 'call'
-        ? {
-            call_date: dateTime,
-            call_status: parseInt(actionFormData.status_id)
-          }
-        : {
-            meeting_date: dateTime,
-            meeting_status: parseInt(actionFormData.status_id)
-          };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${token}`,
-        },
-        body: JSON.stringify(bodyData)
-      });
-
-      if (response.ok) {
-        setShowActionModal(false);
-        setActionFormData({
-          action_type: '',
-          date: '',
-          time: '',
-          status_id: ''
-        });
-        
-        // Refresh lead actions
-        if (selectedLead) {
-          await fetchLeadActions(selectedLead.lead_id);
-        }
-      } else if (response.status === 403) {
-        setActionError('You do not have permission to create actions');
-      } else {
-        const errorData = await response.json();
-        setActionError(errorData.detail || 'Failed to create action');
+    setTimeout(() => {
+      if (editModalScrollRef.current) {
+        editModalScrollRef.current.scrollTop = currentScrollTop;
       }
-    } catch (error) {
-      console.error('Failed to create action:', error);
-      setActionError('Failed to create action. Please try again.');
-    } finally {
-      setActionLoading(false);
-    }
+    }, 0);
   };
 
   const handleAddLead = () => {
@@ -428,7 +470,6 @@ const RealEstateLeads = ({ user, onLogout }) => {
     navigate('/real-estate/leads/add');
   };
 
-  // Delete Confirmation Modal
   const DeleteModal = () => {
     if (!showDeleteModal || !leadToDelete) return null;
 
@@ -473,196 +514,76 @@ const RealEstateLeads = ({ user, onLogout }) => {
     );
   };
 
-  // Action Scheduling Modal
-  const ActionModal = () => {
-    if (!showActionModal || !selectedLead) return null;
+const EditModal = () => {
+  if (!showEditModal || !selectedLead) return null;
 
-    const currentStatuses = actionFormData.action_type === 'call' ? callStatuses : meetingStatuses;
+  const currentStatuses = actionFormData.action_type === 'call' ? callStatuses : meetingStatuses;
+  const isActionRequired = editFormData.lead_stage === '3'; 
+  const isActionCompleted = isActionRequired && actionFormData.action_type && actionFormData.date && actionFormData.time && actionFormData.status_id;
+  const canSubmit = !isActionRequired || isActionCompleted;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-auto transform transition-all">
-          <div className="text-center pt-8 pb-6 px-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Schedule Action</h2>
-            <p className="text-sm text-gray-500">Since stage is "Action Taken", schedule a call or meeting</p>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-auto transform transition-all">
+        <div className="text-center pt-8 pb-6 px-8">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Settings className="w-8 h-8 text-blue-600" />
           </div>
-
-          <form onSubmit={handleActionSubmit} className="px-8 pb-8">
-            {actionError && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-red-600 text-sm text-center">{actionError}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Action Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="action_type"
-                  value={actionFormData.action_type}
-                  onChange={handleActionInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                  required
-                >
-                  <option value="">Select Action Type</option>
-                  <option value="call">Phone Call</option>
-                  <option value="meeting">Meeting</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={actionFormData.date}
-                    onChange={handleActionInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={actionFormData.time}
-                    onChange={handleActionInputChange}
-                    className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Status <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="status_id"
-                  value={actionFormData.status_id}
-                  onChange={handleActionInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                  required
-                >
-                  <option value="">Select Status</option>
-                  {currentStatuses.map(status => (
-                    <option key={status.id} value={status.id}>
-                      {status.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-8 space-y-3">
-              <button
-                type="submit"
-                disabled={actionLoading}
-                className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {actionLoading ? 'Scheduling...' : `Schedule ${actionFormData.action_type === 'call' ? 'Call' : 'Meeting'}`}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setShowActionModal(false);
-                  setActionFormData({
-                    action_type: '',
-                    date: '',
-                    time: '',
-                    status_id: ''
-                  });
-                  setActionError(null);
-                }}
-                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <h2 className="text-xl font-semibold text-gray-900 mb-1">Edit Lead</h2>
+          <p className="text-sm text-gray-500">Update lead information</p>
         </div>
-      </div>
-    );
-  };
 
-  // Edit Lead Modal - Consistent Design
-  const EditModal = () => {
-    if (!showEditModal || !selectedLead) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-auto transform transition-all max-h-screen overflow-y-auto">
-          <div className="text-center pt-8 pb-6 px-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-blue-600" />
+        <form onSubmit={handleEditSubmit} className="px-8 pb-8">
+          {editError && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-red-600 text-sm text-center">{editError}</p>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">Edit Lead</h2>
-            <p className="text-sm text-gray-500">Update lead information</p>
-          </div>
+          )}
 
-          <form onSubmit={handleEditSubmit} className="px-8 pb-8">
-            {editError && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-red-600 text-sm text-center">{editError}</p>
-              </div>
-            )}
+          {actionError && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-red-600 text-sm text-center">{actionError}</p>
+            </div>
+          )}
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Phone</label>
-                <input
-                  type="text"
-                  value={selectedLead.lead_phone}
-                  disabled
-                  className="w-full px-4 py-3 bg-gray-100 border-0 rounded-xl text-gray-500"
-                />
+          <div ref={editModalScrollRef} className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Phone</span>
+                <span className="text-sm text-gray-500 font-medium">{selectedLead.lead_phone}</span>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Name</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Name</span>
                 <input
                   type="text"
                   name="name"
                   value={editFormData.name}
                   onChange={handleEditInputChange}
                   placeholder="Enter name"
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 font-medium bg-transparent border-none outline-none text-right max-w-32"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Email</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Email</span>
                 <input
                   type="email"
                   name="email"
                   value={editFormData.email}
                   onChange={handleEditInputChange}
                   placeholder="Enter email"
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-40"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Gender</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Gender</span>
                 <select
                   name="gender"
                   value={editFormData.gender}
                   onChange={handleEditInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -670,25 +591,25 @@ const RealEstateLeads = ({ user, onLogout }) => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Job Title</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Job Title</span>
                 <input
                   type="text"
                   name="job_title"
                   value={editFormData.job_title}
                   onChange={handleEditInputChange}
                   placeholder="Enter job title"
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none text-right max-w-32"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Lead Type</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Lead Type</span>
                 <select
                   name="lead_type"
                   value={editFormData.lead_type}
                   onChange={handleEditInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none"
                 >
                   <option value="">Select Type</option>
                   {leadTypes.map(type => (
@@ -699,13 +620,13 @@ const RealEstateLeads = ({ user, onLogout }) => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Lead Status</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Lead Status</span>
                 <select
                   name="lead_status"
                   value={editFormData.lead_status}
                   onChange={handleEditInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none"
                 >
                   <option value="">Select Status</option>
                   {leadStatuses.map(status => (
@@ -716,13 +637,13 @@ const RealEstateLeads = ({ user, onLogout }) => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Lead Stage</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Lead Stage</span>
                 <select
                   name="lead_stage"
                   value={editFormData.lead_stage}
                   onChange={handleEditInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none"
                 >
                   <option value="">Select Stage</option>
                   {leadStages.map(stage => (
@@ -733,13 +654,13 @@ const RealEstateLeads = ({ user, onLogout }) => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Assigned To</label>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Assigned To</span>
                 <select
                   name="assigned_to"
                   value={editFormData.assigned_to}
                   onChange={handleEditInputChange}
-                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  className="text-sm text-gray-900 bg-transparent border-none outline-none"
                 >
                   <option value="">Unassigned</option>
                   {users.map(user => (
@@ -749,55 +670,153 @@ const RealEstateLeads = ({ user, onLogout }) => {
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="mt-8 space-y-3">
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {editLoading ? 'Updating...' : 'Update Lead'}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setSelectedLead(null);
-                  setEditError(null);
-                }}
-                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
+              {isActionRequired && permissions.canWriteActions && (
+                <>
+                  {/* Action Type */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-600">
+                      Action Type <span className="text-red-500">*</span>
+                    </span>
+                    <select
+                      name="action_type"
+                      value={actionFormData.action_type}
+                      onChange={handleActionInputChange}
+                      className="text-sm text-gray-900 bg-transparent border-none outline-none"
+                      required
+                    >
+                      <option value="">Select Action</option>
+                      <option value="call">Phone Call</option>
+                      <option value="meeting">Meeting</option>
+                    </select>
+                  </div>
+
+                  {/* Action Date */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-600">
+                      Action Date <span className="text-red-500">*</span>
+                    </span>
+                    <input
+                      type="date"
+                      name="date"
+                      value={actionFormData.date}
+                      onChange={handleActionInputChange}
+                      className="text-sm text-gray-900 bg-transparent border-none outline-none text-right"
+                      required
+                    />
+                  </div>
+
+                  {/* Action Time */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-600">
+                      Action Time <span className="text-red-500">*</span>
+                    </span>
+                    <input
+                      type="time"
+                      name="time"
+                      value={actionFormData.time}
+                      onChange={handleActionInputChange}
+                      className="text-sm text-gray-900 bg-transparent border-none outline-none text-right"
+                      required
+                    />
+                  </div>
+
+                  {/* Action Status */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-600">
+                      Action Status <span className="text-red-500">*</span>
+                    </span>
+                    <select
+                      name="status_id"
+                      value={actionFormData.status_id}
+                      onChange={handleActionInputChange}
+                      className="text-sm text-gray-900 bg-transparent border-none outline-none"
+                      required
+                    >
+                      <option value="">Select Status</option>
+                      {currentStatuses.map(status => (
+                        <option key={status.id} value={status.id}>
+                          {status.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {isActionRequired && !permissions.canWriteActions && (
+                <div className="py-4 px-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <p className="text-yellow-800 text-sm text-center">
+                    Action scheduling required but you don't have permission to create actions.
+                  </p>
+                </div>
+              )}
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div className="mt-8 space-y-3">
+            <button
+              type="submit"
+              disabled={editLoading || !canSubmit}
+              className={`w-full py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center ${
+                canSubmit
+                  ? 'bg-blue-500 text-white hover:bg-blue-800'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {editLoading ? 'Updating...' : 'Update Lead'}
+            </button>
+            
+            {isActionRequired && !isActionCompleted && permissions.canWriteActions && (
+              <p className="text-xs text-red-500 text-center">
+                Please complete all action scheduling fields to update the lead
+              </p>
+            )}
+            
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setSelectedLead(null);
+                setEditError(null);
+                setShowActionForm(false);
+                setActionFormData({
+                  action_type: '',
+                  date: '',
+                  time: '',
+                  status_id: ''
+                });
+                setActionError(null);
+              }}
+              className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  // Lead Detail Modal - Consistent Design
+  // Lead Detail Modal 
   const LeadModal = () => {
     if (!showModal || !selectedLead) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl mx-auto transform transition-all max-h-screen overflow-y-auto">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-auto transform transition-all">
           <div className="text-center pt-8 pb-6 px-8">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserCheck className="w-8 h-8 text-purple-600" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Lead Details</h2>
-            <p className="text-sm text-gray-500">View complete lead information and actions</p>
+            <p className="text-sm text-gray-500">View complete lead information</p>
           </div>
 
           <div className="px-8 pb-8">
-            {/* Lead Information */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Lead Information</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto mb-8">
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm font-medium text-gray-600">Phone</span>
@@ -858,98 +877,71 @@ const RealEstateLeads = ({ user, onLogout }) => {
                     {selectedLead.date_added ? new Date(selectedLead.date_added).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
+
+                {/* Actions History Section */}
+                <div className="pt-4">
+                  <h3 className="text-sm font-medium text-gray-600 mb-3 pb-2 border-b border-gray-100">Actions History</h3>
+                  
+                  {actionsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
+                      <p className="text-sm text-gray-500 mt-2">Loading actions...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Calls Section */}
+                      <div className="flex justify-between items-center py-1">
+                        <div className="flex items-center">
+                          <Phone className="w-3 h-3 text-blue-600 mr-2" />
+                          <span className="text-xs font-medium text-gray-600">Calls</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{leadActions.calls.length}</span>
+                      </div>
+                      
+                      {leadActions.calls.length > 0 && (
+                        <div className="space-y-1 max-h-24 overflow-y-auto pl-5">
+                          {leadActions.calls.slice(0, 3).map((call, index) => (
+                            <div key={call.call_id || index} className="text-xs text-gray-500">
+                              {formatDateTime(call.call_date)} - {call.call_status_name || 'Unknown'}
+                            </div>
+                          ))}
+                          {leadActions.calls.length > 3 && (
+                            <div className="text-xs text-gray-400">+ {leadActions.calls.length - 3} more</div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Meetings Section */}
+                      <div className="flex justify-between items-center py-1">
+                        <div className="flex items-center">
+                          <Calendar className="w-3 h-3 text-green-600 mr-2" />
+                          <span className="text-xs font-medium text-gray-600">Meetings</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{leadActions.meetings.length}</span>
+                      </div>
+                      
+                      {leadActions.meetings.length > 0 && (
+                        <div className="space-y-1 max-h-24 overflow-y-auto pl-5">
+                          {leadActions.meetings.slice(0, 3).map((meeting, index) => (
+                            <div key={meeting.meeting_id || index} className="text-xs text-gray-500">
+                              {formatDateTime(meeting.meeting_date)} - {meeting.meeting_status_name || 'Unknown'}
+                            </div>
+                          ))}
+                          {leadActions.meetings.length > 3 && (
+                            <div className="text-xs text-gray-400">+ {leadActions.meetings.length - 3} more</div>
+                          )}
+                        </div>
+                      )}
+
+                      {leadActions.calls.length === 0 && leadActions.meetings.length === 0 && (
+                        <p className="text-xs text-gray-500 text-center py-2">No actions recorded</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-
-            {/* Actions Section */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions History</h3>
-              
-              {actionsLoading ? (
-                <div className="text-center py-4">
-                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
-                  <p className="text-sm text-gray-500 mt-2">Loading actions...</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Calls Section */}
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <Phone className="w-4 h-4 text-blue-600 mr-2" />
-                      <h4 className="text-md font-medium text-gray-800">Calls ({leadActions.calls.length})</h4>
-                    </div>
-                    
-                    {leadActions.calls.length > 0 ? (
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {leadActions.calls.map((call, index) => (
-                          <div key={call.call_id || index} className="bg-blue-50 p-3 rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  Call #{call.call_id}
-                                </p>
-                                <p className="text-xs text-gray-600">
-                                  Status: {call.call_status_name || 'Unknown'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-gray-500">
-                                  {formatDateTime(call.call_date)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  by {getUserName(call.assigned_to)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">No calls recorded</p>
-                    )}
-                  </div>
-
-                  {/* Meetings Section */}
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <Calendar className="w-4 h-4 text-green-600 mr-2" />
-                      <h4 className="text-md font-medium text-gray-800">Meetings ({leadActions.meetings.length})</h4>
-                    </div>
-                    
-                    {leadActions.meetings.length > 0 ? (
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {leadActions.meetings.map((meeting, index) => (
-                          <div key={meeting.meeting_id || index} className="bg-green-50 p-3 rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  Meeting #{meeting.meeting_id}
-                                </p>
-                                <p className="text-xs text-gray-600">
-                                  Status: {meeting.meeting_status_name || 'Unknown'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-gray-500">
-                                  {formatDateTime(meeting.meeting_date)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  by {getUserName(meeting.assigned_to)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">No meetings scheduled</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
             
-            {/* Action Buttons */}
             <div className="space-y-3">
               {permissions.canEdit && (
                 <button
@@ -1016,7 +1008,7 @@ const RealEstateLeads = ({ user, onLogout }) => {
       <Sidebar user={user} onLogout={onLogout} />
       
       <div className="flex-1 flex flex-col">
-        <header className="px-6 py-8">
+        <header className="px-6 lg:px-6 py-8 pl-20 lg:pl-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-lg font-medium text-gray-900">Lead Management</h1>
@@ -1029,7 +1021,7 @@ const RealEstateLeads = ({ user, onLogout }) => {
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
               <div className="px-6 py-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">All Leads</h2>
                 {permissions.canWrite && (
@@ -1163,10 +1155,8 @@ const RealEstateLeads = ({ user, onLogout }) => {
       <LeadModal />
       <DeleteModal />
       <EditModal />
-      <ActionModal />
     </div>
   );
 };
 
 export default RealEstateLeads;
-                

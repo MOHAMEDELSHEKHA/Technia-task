@@ -1,4 +1,3 @@
-// src/Frontend/pages/AddSalary.jsx - Add Salary Page with All Required Fields
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -102,7 +101,6 @@ const AddSalary = ({ user, onLogout }) => {
     setLoading(true);
     setError(null);
 
-    // Validate all required fields
     if (!formData.employee_id || !formData.gross_salary || !formData.insurance || 
         !formData.taxes || !formData.net_salary || !formData.due_date) {
       setError('Please fill in all required fields');
@@ -224,7 +222,6 @@ const AddSalary = ({ user, onLogout }) => {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl">
-              {/* Header */}
               <div className="text-center pt-8 pb-6 px-8">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <DollarSign className="w-8 h-8 text-blue-600" />
@@ -233,7 +230,6 @@ const AddSalary = ({ user, onLogout }) => {
                 <p className="text-sm text-gray-500">Fill in the salary details</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="px-8 pb-8">
                 {error && (
                   <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
@@ -242,7 +238,6 @@ const AddSalary = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-4">
-                  {/* Employee Selection */}
                   <div>
                     <label htmlFor="employee_id" className="block text-sm font-medium text-gray-600 mb-2">
                       Employee <span className="text-red-500">*</span>
@@ -264,7 +259,6 @@ const AddSalary = ({ user, onLogout }) => {
                     </select>
                   </div>
 
-                  {/* Year and Month - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="due_year" className="block text-sm font-medium text-gray-600 mb-2">
@@ -304,7 +298,6 @@ const AddSalary = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Gross Salary and Insurance - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="gross_salary" className="block text-sm font-medium text-gray-600 mb-2">
@@ -343,7 +336,6 @@ const AddSalary = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Taxes and Net Salary - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="taxes" className="block text-sm font-medium text-gray-600 mb-2">
@@ -382,7 +374,6 @@ const AddSalary = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Due Date */}
                   <div>
                     <label htmlFor="due_date" className="block text-sm font-medium text-gray-600 mb-2">
                       Due Date <span className="text-red-500">*</span>
@@ -399,7 +390,6 @@ const AddSalary = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="mt-8 space-y-3">
                   <button
                     type="submit"

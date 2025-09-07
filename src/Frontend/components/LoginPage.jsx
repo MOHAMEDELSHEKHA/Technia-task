@@ -1,4 +1,3 @@
-// src/components/LoginPage.jsx
 import React, { useState } from 'react';
 import { User, Lock, CheckCircle, Eye } from 'lucide-react';
 
@@ -43,11 +42,10 @@ const LoginPage = ({ onLoginSuccess }) => {
       setUserInfo(userData);
       setShowSplash(true);
       
-      // Splash screen animation sequence
-      setTimeout(() => setSplashStep(1), 800);  // Show tick above name
-      setTimeout(() => setSplashStep(2), 1500); // Merge tick with name
+      setTimeout(() => setSplashStep(1), 800);  
+      setTimeout(() => setSplashStep(2), 1500); 
       setTimeout(() => {
-        // Directly redirect to dashboard
+        //  redirect to dashboard
         onLoginSuccess(userData);
       }, 2500);
 
@@ -75,36 +73,30 @@ const LoginPage = ({ onLoginSuccess }) => {
     setTimeout(() => handleLogin(), 100);
   };
 
-  // White splash screen with tick animation
   const SplashScreen = () => (
     <div className={`fixed inset-0 bg-white flex items-center justify-center z-50 transition-opacity duration-500 ${
       splashStep === 2 ? 'opacity-0' : 'opacity-100'
     }`}>
       <div className="text-center">
-        {/* Company Logo */}
         <div className="mb-8">
           <img 
             src="/assets/technia-logo.png" 
             alt="Technia Logo" 
             className="h-16 w-auto mx-auto mb-4"
             onError={(e) => {
-              // Fallback if image doesn't load
               e.target.style.display = 'none';
             }}
           />
           <h1 className="text-gray-800 text-2xl font-bold">Technia ERP</h1>
         </div>
         
-        {/* Animation Container */}
         <div className="relative flex flex-col items-center justify-center space-y-4">
-          {/* Check mark - appears above name first, then merges */}
           <CheckCircle className={`h-12 w-12 text-green-500 transition-all duration-700 ${
             splashStep >= 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-0'
           } ${
             splashStep >= 2 ? 'transform translate-y-8' : ''
           }`} />
           
-          {/* User name */}
           <span className={`text-gray-800 text-xl font-medium transition-all duration-500 ${
             splashStep >= 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
@@ -112,7 +104,6 @@ const LoginPage = ({ onLoginSuccess }) => {
           </span>
         </div>
         
-        {/* Loading spinner */}
         <div className="mt-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto"></div>
           <p className="text-gray-600 text-sm mt-2">Loading your dashboard...</p>
@@ -125,11 +116,8 @@ const LoginPage = ({ onLoginSuccess }) => {
     <>
       {showSplash && <SplashScreen />}
 
-      {/* Main login page with split card design */}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        {/* Split Login Card */}
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row">
-          {/* Mobile Logo (only visible on small screens) */}
           <div className="md:hidden flex justify-center items-center py-8 bg-white">
             <img 
               src="/assets/technia-logo.png" 
@@ -147,19 +135,14 @@ const LoginPage = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Left Side - Login Form */}
           <div className="w-full md:w-1/2 p-8 flex flex-col justify-between min-h-96">
-            {/* Header and Form */}
             <div>
-              {/* Header */}
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">Sign In</h1>
                 <p className="text-gray-600 text-sm">Welcome to Technia ERP System</p>
               </div>
 
-              {/* Login Form */}
               <div className="space-y-8">
-                {/* Username Field */}
                 <div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -178,7 +161,6 @@ const LoginPage = ({ onLoginSuccess }) => {
                   </div>
                 </div>
 
-                {/* Password Field */}
                 <div>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -197,7 +179,6 @@ const LoginPage = ({ onLoginSuccess }) => {
                   </div>
                 </div>
 
-                {/* Error Message */}
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p className="text-red-600 text-sm">{error}</p>
@@ -206,7 +187,6 @@ const LoginPage = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* Submit Button at Bottom */}
             <div className="mt-20">
               <button
                 onClick={handleLogin}
@@ -225,26 +205,21 @@ const LoginPage = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Right Side - Image (hidden on small screens) */}
           <div className="hidden md:flex w-1/2 bg-white relative items-center justify-center">
-            {/* Background Pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="w-full h-full bg-gradient-to-r from-gray-100 to-gray-50"></div>
             </div>
             
-            {/* Technia Logo/Image Container */}
             <div className="relative z-10 bg-white bg-opacity-20 rounded-3xl p-8 backdrop-blur-sm">
               <img 
                 src="/assets/technia-logo.png" 
                 alt="Technia ERP" 
                 className="w-64 h-64 object-contain mx-auto"
                 onError={(e) => {
-                  // Fallback if image doesn't load
                   e.target.style.display = 'none';
                   e.target.nextElementSibling.style.display = 'flex';
                 }}
               />
-              {/* Fallback content */}
               <div className="hidden w-64 h-64 bg-white bg-opacity-30 rounded-2xl flex items-center justify-center">
                 <div className="text-center text-gray-700">
                   <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">

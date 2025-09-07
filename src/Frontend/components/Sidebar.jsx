@@ -1,4 +1,3 @@
-// src/Frontend/components/Sidebar.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -19,7 +18,6 @@ const Sidebar = ({ user, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Fetch user permissions on component mount
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
@@ -44,7 +42,6 @@ const Sidebar = ({ user, onLogout }) => {
     fetchPermissions();
   }, []);
 
-  // Check if user has read permission for a specific module/feature
   const hasReadPermission = (moduleId, featureId) => {
     return permissions.some(
       perm => perm.module_id === moduleId && 
@@ -53,50 +50,48 @@ const Sidebar = ({ user, onLogout }) => {
     );
   };
 
-  // Define all possible menu items with their permission requirements
   const menuItems = [
     {
       id: 'dashboard',
       name: 'Dashboard',
       icon: LayoutDashboard,
       path: '/',
-      always: true // Dashboard is always visible
+      always: true 
     },
     {
       id: 'staff',
       name: 'Employees',
       icon: Users,
       path: '/hr/employees',
-      moduleId: 2, // HR module
-      featureId: 1, // Employees feature
+      moduleId: 2, 
+      featureId: 1, 
     },
     {
       id: 'salaries',
       name: 'Salaries',
       icon: DollarSign,
       path: '/hr/salaries',
-      moduleId: 2, // HR module
-      featureId: 2, // Salaries feature
+      moduleId: 2, 
+      featureId: 2, 
     },
     {
       id: 'leads',
       name: 'Leads',
       icon: UserCheck,
       path: '/real-estate/leads',
-      moduleId: 1, // Real Estate module
-      featureId: 1, // Leads feature
+      moduleId: 1, 
+      featureId: 1, 
     },
     {
       id: 'actions',
-      name: 'Actions',
+      name: 'Calls/Meetings',
       icon: Settings,
       path: '/real-estate/actions',
-      moduleId: 1, // Real Estate module
-      featureId: 2, // Actions feature
+      moduleId: 1, 
+      featureId: 2, 
     }
   ];
 
-  // Filter menu items based on permissions
   const visibleMenuItems = menuItems.filter(item => {
     if (item.always) return true;
     return hasReadPermission(item.moduleId, item.featureId);
@@ -115,7 +110,6 @@ const Sidebar = ({ user, onLogout }) => {
     onLogout();
   };
 
-  // Mobile hamburger button (only visible on small screens)
   const MobileMenuButton = () => (
     <div className="lg:hidden fixed top-4 left-4 z-50">
       <button
@@ -131,25 +125,21 @@ const Sidebar = ({ user, onLogout }) => {
     </div>
   );
 
-  // Sidebar content component
+  // Sidebar content 
   const SidebarContent = ({ isMobile = false }) => (
     <div className={`bg-white border-r border-gray-200 flex flex-col h-full ${isMobile ? 'w-full' : 'w-64'}`}>
-      {/* Header with Logo */}
       <div className="flex items-center justify-center py-8 border-b border-gray-100">
         <div className="text-center">
-          {/* Technia Logo */}
           <div className="w-12 h-12 mx-auto mb-3">
             <img 
               src="/assets/technia-logo.png" 
               alt="Technia Logo" 
               className="w-full h-full object-contain"
               onError={(e) => {
-                // Fallback if image doesn't load
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'flex';
               }}
             />
-            {/* Fallback logo */}
             <div className="hidden w-12 h-12 bg-blue-600 rounded-lg items-center justify-center">
               <span className="text-white font-bold text-lg">T</span>
             </div>
@@ -159,7 +149,6 @@ const Sidebar = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* Navigation Menu */}
       <nav className="flex-1 py-4">
         <div className="space-y-1">
           {visibleMenuItems.map((item) => {
@@ -187,7 +176,6 @@ const Sidebar = ({ user, onLogout }) => {
         </div>
       </nav>
 
-      {/* User Profile Section (All Screen Sizes) */}
       <div className=" p-4">
         <div className="mb-4">
           <div className="flex items-center space-x-3 px-2 py-2">
@@ -225,24 +213,19 @@ const Sidebar = ({ user, onLogout }) => {
 
   return (
     <>
-      {/* Mobile Menu Button */}
       <MobileMenuButton />
 
-      {/* Desktop Sidebar (always visible on large screens) */}
-      <div className="hidden lg:block h-screen">
+      <div className="hidden lg:block h-screen ">
         <SidebarContent />
       </div>
 
-      {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
-          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-black bg-opacity-50"
             onClick={closeMobileMenu}
           ></div>
           
-          {/* Sidebar */}
           <div className="fixed inset-y-0 left-0 w-80 max-w-full">
             <SidebarContent isMobile={true} />
           </div>

@@ -1,4 +1,3 @@
-// src/Frontend/components/StaffListTable.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
@@ -7,9 +6,9 @@ const StaffListTable = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch employees data on component mount
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -25,6 +24,7 @@ const StaffListTable = () => {
           setEmployees(employeesData);
           console.log('Fetched employees:', employeesData);
         } else if (response.status === 403) {
+          setHasPermission(false);
           setError('You do not have permission to view employees');
         } else {
           setError('Failed to fetch employees data');
@@ -40,7 +40,6 @@ const StaffListTable = () => {
     fetchEmployees();
   }, []);
 
-  // Get only the last 5 employees (most recent)
   const displayData = employees.slice(-5);
 
   const handleViewAllEmployees = () => {
@@ -71,6 +70,10 @@ const StaffListTable = () => {
     );
   }
 
+  if (!hasPermission) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="py-4 px-4 sm:px-6">
@@ -89,10 +92,9 @@ const StaffListTable = () => {
   return (
     <div className="py-4 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto ">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-gray-900">Recent Staff</h2>
+            <h2 className="text-lg font-medium text-gray-900">Recent Employees</h2>
             <button
               onClick={handleViewAllEmployees}
               className="flex items-center bg-blue-500 py-2 px-4 rounded-lg font-medium text-white hover:bg-blue-800 text-sm font-medium transition-colors"
@@ -102,10 +104,8 @@ const StaffListTable = () => {
             </button>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
-              {/* Table Header */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -123,31 +123,26 @@ const StaffListTable = () => {
                 </tr>
               </thead>
 
-              {/* Table Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayData.length > 0 ? (
                   displayData.map((staff, index) => (
                     <tr key={staff.employee_id || index} className="hover:bg-gray-50 transition-colors">
-                      {/* Serial Number */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {String(index + 1).padStart(2, '0')}
                       </td>
                       
-                      {/* Staff Name */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {staff.contact_name}
                         </div>
                       </td>
                       
-                      {/* Staff Role */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {staff.role || 'Employee'}
                         </div>
                       </td>
                       
-                      {/* Email */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {staff.business_email || 'N/A'}
@@ -169,7 +164,6 @@ const StaffListTable = () => {
             </table>
           </div>
 
-          {/* View All Button */}
           <div className="px-6 py-4 border-t border-gray-200 ">
             <button
               onClick={handleViewAllEmployees}

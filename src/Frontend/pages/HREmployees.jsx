@@ -1,4 +1,3 @@
-// src/Frontend/pages/HREmployees.jsx - Enhanced with modals
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -200,7 +199,6 @@ const HREmployees = ({ user, onLogout }) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Delete Confirmation Modal
   const DeleteModal = () => {
     if (!showDeleteModal || !employeeToDelete) return null;
 
@@ -244,7 +242,6 @@ const HREmployees = ({ user, onLogout }) => {
     );
   };
 
-  // Edit Employee Modal
   const EditModal = () => {
     if (!showEditModal || !selectedEmployee) return null;
 
@@ -392,7 +389,6 @@ const HREmployees = ({ user, onLogout }) => {
     );
   };
 
-  // Employee Detail Modal
   const EmployeeModal = () => {
     if (!showModal || !selectedEmployee) return null;
 
@@ -516,20 +512,21 @@ const HREmployees = ({ user, onLogout }) => {
       <Sidebar user={user} onLogout={onLogout} />
       
       <div className="flex-1 flex flex-col">
-        <header className="px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-medium text-gray-900">Staff Management</h1>
-              <p className="text-gray-600 mt-1">
-                Manage employee records and information
-              </p>
+          <header className="px-6 lg:px-6 py-8 pl-20 lg:pl-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-medium text-gray-900">Employee Management</h1>
+                          
+                <p className="text-gray-600 mt-1">
+                  Manage employee records
+                </p>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
               <div className="px-6 py-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">All Employees</h2>
                 {permissions.canWrite && (

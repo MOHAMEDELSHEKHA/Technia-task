@@ -1,4 +1,3 @@
-// src/Frontend/pages/AddAction.jsx - Complete Implementation
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -118,7 +117,6 @@ const AddAction = ({ user, onLogout }) => {
     setLoading(true);
     setError(null);
 
-    // Validate required fields
     if (!formData.lead_id || !formData.action_type || !formData.date || 
         !formData.time || !formData.status_id) {
       setError('All fields are required');
@@ -269,7 +267,6 @@ const AddAction = ({ user, onLogout }) => {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl">
-              {/* Header */}
               <div className="text-center pt-8 pb-6 px-8">
                 <div className={`w-16 h-16 ${formData.action_type ? getActionBgColor() : 'bg-gray-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   {formData.action_type ? (
@@ -282,7 +279,6 @@ const AddAction = ({ user, onLogout }) => {
                 <p className="text-sm text-gray-500">Schedule a call or meeting with a lead</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="px-8 pb-8">
                 {error && (
                   <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
@@ -291,7 +287,6 @@ const AddAction = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-4">
-                  {/* Lead Selection */}
                   <div>
                     <label htmlFor="lead_id" className="block text-sm font-medium text-gray-600 mb-2">
                       Select Lead <span className="text-red-500">*</span>
@@ -313,7 +308,6 @@ const AddAction = ({ user, onLogout }) => {
                     </select>
                   </div>
 
-                  {/* Action Type */}
                   <div>
                     <label htmlFor="action_type" className="block text-sm font-medium text-gray-600 mb-2">
                       Action Type <span className="text-red-500">*</span>
@@ -332,7 +326,6 @@ const AddAction = ({ user, onLogout }) => {
                     </select>
                   </div>
 
-                  {/* Date and Time - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="date" className="block text-sm font-medium text-gray-600 mb-2">
@@ -365,7 +358,6 @@ const AddAction = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Status */}
                   <div>
                     <label htmlFor="status_id" className="block text-sm font-medium text-gray-600 mb-2">
                       Status <span className="text-red-500">*</span>
@@ -390,7 +382,6 @@ const AddAction = ({ user, onLogout }) => {
                     </select>
                   </div>
 
-                  {/* Action Preview */}
                   {formData.action_type && (
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-center space-x-3">
@@ -412,7 +403,6 @@ const AddAction = ({ user, onLogout }) => {
                   )}
                 </div>
 
-                {/* Action Buttons */}
                 <div className="mt-8 space-y-3">
                   <button
                     type="submit"

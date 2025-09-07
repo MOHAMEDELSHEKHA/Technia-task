@@ -1,4 +1,3 @@
-// src/Frontend/components/SalariesTable.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,9 +6,9 @@ const SalariesTable = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch salaries and employees data on component mount
   useEffect(() => {
     fetchData();
   }, []);
@@ -18,7 +17,6 @@ const SalariesTable = () => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // Fetch both salaries and employees
       const [salariesResponse, employeesResponse] = await Promise.all([
         fetch('http://localhost:8000/api/hr/salaries', {
           headers: { 'Authorization': `Basic ${token}` },
@@ -35,6 +33,7 @@ const SalariesTable = () => {
         setSalaries(salariesData);
         setEmployees(employeesData);
       } else if (salariesResponse.status === 403 || employeesResponse.status === 403) {
+        setHasPermission(false);
         setError('You do not have permission to view salary data');
       } else {
         setError('Failed to fetch salary data');
@@ -47,13 +46,11 @@ const SalariesTable = () => {
     }
   };
 
-  // Get employee name by ID
   const getEmployeeName = (employeeId) => {
     const employee = employees.find(emp => emp.employee_id === employeeId);
     return employee ? employee.contact_name : `Employee ${employeeId}`;
   };
 
-  // Format currency
   const formatCurrency = (amount) => {
     if (!amount) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -62,13 +59,11 @@ const SalariesTable = () => {
     }).format(amount);
   };
 
-  // Format month/year
   const formatPeriod = (year, month) => {
     const date = new Date(year, month - 1);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
-  // Get only the last 5 salary records (most recent)
   const displayData = salaries.slice(-5);
 
   const handleViewAllSalaries = () => {
@@ -99,6 +94,10 @@ const SalariesTable = () => {
     );
   }
 
+  if (!hasPermission) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="py-4 px-4 sm:px-6">
@@ -117,8 +116,7 @@ const SalariesTable = () => {
   return (
     <div className="py-4 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900">Recent Salaries</h2>
             <button
@@ -129,10 +127,8 @@ const SalariesTable = () => {
             </button>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
-              {/* Table Header */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -150,31 +146,26 @@ const SalariesTable = () => {
                 </tr>
               </thead>
 
-              {/* Table Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayData.length > 0 ? (
                   displayData.map((salary, index) => (
                     <tr key={`${salary.employee_id}-${salary.due_year}-${salary.due_month}`} className="hover:bg-gray-50 transition-colors">
-                      {/* Serial Number */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {String(index + 1).padStart(2, '0')}
                       </td>
                       
-                      {/* Employee Name */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {getEmployeeName(salary.employee_id)}
                         </div>
                       </td>
                       
-                      {/* Period */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {formatPeriod(salary.due_year, salary.due_month)}
                         </div>
                       </td>
                       
-                      {/* Net Salary */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 font-medium">
                           {formatCurrency(salary.net_salary)}
@@ -196,7 +187,6 @@ const SalariesTable = () => {
             </table>
           </div>
 
-          {/* View All Button */}
           <div className="px-6 py-4 border-t border-gray-200">
             <button
               onClick={handleViewAllSalaries}

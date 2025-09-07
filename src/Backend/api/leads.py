@@ -1,20 +1,3 @@
-"""
-Real Estate Module API Endpoints - Enhanced with Status Lookups
-
-WHY THIS FILE EXISTS:
-- Handles all lead management operations (CRUD)
-- Manages calls and meetings (actions on leads)
-- Provides lookup data for dropdowns with proper status names
-- Enforces permissions on every operation
-- Scopes all data to user's company
-
-BUSINESS LOGIC:
-- Leads are potential customers
-- Each lead can have multiple calls and meetings
-- All operations are permission-controlled
-- Data is isolated by company_domain
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -37,23 +20,19 @@ from models import (
 
 router = APIRouter()
 
-# LOOKUP ENDPOINTS
-# WHY: Frontend needs dropdown data for forms
+
 
 @router.get("/lookup/stages", response_model=List[LookupResponse])
 def get_lead_stages(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all lead stages for user's company"""
-    # Check read permission for leads
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'read')
     
     stages = db.query(LeadsStage).filter(
         LeadsStage.company_domain == current_user.company_domain
     ).all()
     
-    # Convert to generic lookup format
     return [
         LookupResponse(
             id=stage.id,
@@ -68,7 +47,6 @@ def get_lead_statuses(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all lead statuses for user's company"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'read')
     
     statuses = db.query(LeadsStatus).filter(
@@ -89,7 +67,6 @@ def get_lead_types(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all lead types for user's company"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'read')
     
     types = db.query(LeadsType).filter(
@@ -110,7 +87,6 @@ def get_call_statuses(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all call statuses for user's company"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
     statuses = db.query(CallStatus).filter(
@@ -131,7 +107,6 @@ def get_meeting_statuses(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all meeting statuses for user's company"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
     statuses = db.query(MeetingStatus).filter(
@@ -147,7 +122,7 @@ def get_meeting_statuses(
         for status in statuses
     ]
 
-# LEAD CRUD OPERATIONS
+# lead crud ops
 
 @router.post("/leads", response_model=LeadResponse)
 def create_lead(
@@ -155,14 +130,6 @@ def create_lead(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Create a new lead
-    
-    WHY THIS ENDPOINT:
-    - Allows users to add new potential customers
-    - Automatically sets company domain to user's company
-    - Enforces write permission
-    """
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'write')
     
     # Create new lead with user's company domain
@@ -178,7 +145,6 @@ def create_lead(
         return lead
     except Exception as e:
         db.rollback()
-        # Handle unique constraint violations (phone number must be unique)
         if "UNIQUE constraint failed" in str(e) or "duplicate key" in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -194,14 +160,7 @@ def get_all_leads(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Get all leads for user's company
-    
-    WHY THIS ENDPOINT:
-    - Main page for viewing leads
-    - Only shows leads from user's company
-    - Requires read permission
-    """
+  
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'read')
     
     leads = db.query(LeadsInfo).filter(
@@ -216,10 +175,8 @@ def get_lead_by_id(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get specific lead with security checks"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'read')
     
-    # SECURITY: Ensure lead belongs to user's company
     lead = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -242,7 +199,6 @@ def update_lead(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update existing lead"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'edit')
     
     # Find lead with security check
@@ -259,7 +215,6 @@ def update_lead(
             detail="Lead not found"
         )
     
-    # Update only provided fields
     update_data = lead_update.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(lead, field, value)
@@ -281,10 +236,8 @@ def delete_lead(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a lead"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.LEADS, 'delete')
     
-    # Find lead with security check
     lead = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -299,7 +252,6 @@ def delete_lead(
         )
     
     try:
-        # Note: Related calls/meetings will be deleted by CASCADE constraints
         db.delete(lead)
         db.commit()
         return SuccessResponse(message="Lead deleted successfully")
@@ -310,7 +262,7 @@ def delete_lead(
             detail="Failed to delete lead"
         )
 
-# ACTION ENDPOINTS (Calls and Meetings)
+# calls/meetings ops
 
 @router.post("/leads/{lead_id}/calls", response_model=CallResponse)
 def add_call_to_lead(
@@ -319,10 +271,8 @@ def add_call_to_lead(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add a call action to a lead"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'write')
     
-    # Verify lead exists and belongs to user's company
     lead = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -336,7 +286,6 @@ def add_call_to_lead(
             detail="Lead not found"
         )
     
-    # Create call record
     call = ClientCall(
         **call_data.dict(),
         lead_id=lead_id,
@@ -363,10 +312,8 @@ def add_meeting_to_lead(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add a meeting action to a lead"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'write')
     
-    # Verify lead exists and belongs to user's company
     lead = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -380,7 +327,6 @@ def add_meeting_to_lead(
             detail="Lead not found"
         )
     
-    # Create meeting record
     meeting = ClientMeeting(
         **meeting_data.dict(),
         lead_id=lead_id,
@@ -406,10 +352,8 @@ def get_lead_calls(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all calls for a specific lead with status names"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
-    # Verify lead belongs to user's company
     lead_exists = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -423,19 +367,16 @@ def get_lead_calls(
             detail="Lead not found"
         )
     
-    # Get calls with status names
     calls = db.query(ClientCall).filter(
         ClientCall.lead_id == lead_id
     ).all()
     
-    # Get call statuses for lookup
     call_statuses = db.query(CallStatus).filter(
         CallStatus.company_domain == current_user.company_domain
     ).all()
     
     status_map = {cs.id: cs.call_status for cs in call_statuses}
     
-    # Return calls with status names
     result = []
     for call in calls:
         call_dict = {
@@ -461,7 +402,6 @@ def get_lead_meetings(
     """Get all meetings for a specific lead with status names"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'read')
     
-    # Verify lead belongs to user's company
     lead_exists = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -475,19 +415,16 @@ def get_lead_meetings(
             detail="Lead not found"
         )
     
-    # Get meetings with status names
     meetings = db.query(ClientMeeting).filter(
         ClientMeeting.lead_id == lead_id
     ).all()
     
-    # Get meeting statuses for lookup
     meeting_statuses = db.query(MeetingStatus).filter(
         MeetingStatus.company_domain == current_user.company_domain
     ).all()
     
     status_map = {ms.id: ms.meeting_status for ms in meeting_statuses}
     
-    # Return meetings with status names
     result = []
     for meeting in meetings:
         meeting_dict = {
@@ -511,10 +448,8 @@ def delete_call(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a specific call"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'delete')
     
-    # Verify lead belongs to user's company
     lead_exists = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -528,7 +463,6 @@ def delete_call(
             detail="Lead not found"
         )
     
-    # Find and delete the call
     call = db.query(ClientCall).filter(
         and_(
             ClientCall.call_id == call_id,
@@ -561,10 +495,8 @@ def delete_meeting(
     current_user: UserInfo = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete a specific meeting"""
     require_permission(db, current_user.id, Modules.REAL_ESTATE, Features.ACTIONS, 'delete')
     
-    # Verify lead belongs to user's company
     lead_exists = db.query(LeadsInfo).filter(
         and_(
             LeadsInfo.lead_id == lead_id,
@@ -578,7 +510,6 @@ def delete_meeting(
             detail="Lead not found"
         )
     
-    # Find and delete the meeting
     meeting = db.query(ClientMeeting).filter(
         and_(
             ClientMeeting.meeting_id == meeting_id,

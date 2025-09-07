@@ -1,4 +1,3 @@
-// src/Frontend/pages/AddEmployee.jsx - Modern Design
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -168,7 +167,7 @@ const AddEmployee = ({ user, onLogout }) => {
           <div className="flex items-center">
             <button
               onClick={handleCancel}
-              className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="mr-4 p-2 ml-10 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -184,7 +183,6 @@ const AddEmployee = ({ user, onLogout }) => {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl">
-              {/* Header */}
               <div className="text-center pt-8 pb-6 px-8">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <User className="w-8 h-8 text-blue-600" />
@@ -193,7 +191,6 @@ const AddEmployee = ({ user, onLogout }) => {
                 <p className="text-sm text-gray-500">Fill in the employee details</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="px-8 pb-8">
                 {error && (
                   <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
@@ -202,7 +199,6 @@ const AddEmployee = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-4">
-                  {/* Contact Name */}
                   <div>
                     <label htmlFor="contact_name" className="block text-sm font-medium text-gray-600 mb-2">
                       Full Name <span className="text-red-500">*</span>
@@ -219,7 +215,6 @@ const AddEmployee = ({ user, onLogout }) => {
                     />
                   </div>
 
-                  {/* Phone Numbers - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="business_phone" className="block text-sm font-medium text-gray-600 mb-2">
@@ -254,7 +249,6 @@ const AddEmployee = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Email Addresses - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="business_email" className="block text-sm font-medium text-gray-600 mb-2">
@@ -289,7 +283,6 @@ const AddEmployee = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Gender */}
                   <div>
                     <label htmlFor="gender" className="block text-sm font-medium text-gray-600 mb-2">
                       Gender <span className="text-red-500">*</span>
@@ -308,7 +301,6 @@ const AddEmployee = ({ user, onLogout }) => {
                     </select>
                   </div>
 
-                  {/* Company Admin Checkbox */}
                   <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
                     <input
                       type="checkbox"
@@ -325,7 +317,6 @@ const AddEmployee = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="mt-8 space-y-3">
                   <button
                     type="submit"

@@ -1,4 +1,3 @@
-// src/Frontend/components/ActionsTable.jsx - Complete Implementation
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Calendar } from 'lucide-react';
@@ -9,6 +8,7 @@ const ActionsTable = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,7 +19,6 @@ const ActionsTable = () => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // First fetch leads and users
       const [leadsResponse, usersResponse] = await Promise.all([
         fetch('http://localhost:8000/api/real-estate/leads', {
           headers: { 'Authorization': `Basic ${token}` },
@@ -35,7 +34,6 @@ const ActionsTable = () => {
         const leadsData = await leadsResponse.json();
         setLeads(leadsData);
         
-        // Fetch actions for each lead (limit to first 10 leads for performance)
         const leadsToFetch = leadsData.slice(0, 10);
         
         for (const lead of leadsToFetch) {
@@ -83,10 +81,10 @@ const ActionsTable = () => {
           }
         }
         
-        // Sort by date descending and take last 5
         allActions.sort((a, b) => new Date(b.date) - new Date(a.date));
         setActions(allActions.slice(0, 5));
       } else if (leadsResponse.status === 403) {
+        setHasPermission(false);
         setError('You do not have permission to view actions');
       } else {
         setError('Failed to fetch leads data');
@@ -145,6 +143,10 @@ const ActionsTable = () => {
     );
   }
 
+  if (!hasPermission) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="py-4 px-4 sm:px-6">
@@ -163,10 +165,9 @@ const ActionsTable = () => {
   return (
     <div className="py-4 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-gray-900">Recent Actions</h2>
+            <h2 className="text-lg font-medium text-gray-900">Recent Calls/Meetings</h2>
             <button
               onClick={handleViewAllActions}
               className="flex items-center bg-blue-500 py-2 px-4 rounded-lg font-medium text-white hover:bg-blue-800 text-sm font-medium transition-colors"
@@ -175,10 +176,8 @@ const ActionsTable = () => {
             </button>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
-              {/* Table Header */}
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -199,17 +198,14 @@ const ActionsTable = () => {
                 </tr>
               </thead>
 
-              {/* Table Body */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {actions.length > 0 ? (
                   actions.map((action, index) => (
                     <tr key={`${action.type}-${action.id}-${action.lead_id}`} className="hover:bg-gray-50 transition-colors">
-                      {/* Serial Number */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {String(index + 1).padStart(2, '0')}
                       </td>
                       
-                      {/* Type */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {action.type === 'call' ? (
@@ -225,21 +221,18 @@ const ActionsTable = () => {
                         </div>
                       </td>
                       
-                      {/* Lead */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {action.lead_name}
                         </div>
                       </td>
                       
-                      {/* Assigned User */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {getUserName(action.assigned_to)}
                         </div>
                       </td>
                       
-                      {/* Date */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {formatDateTime(action.date)}
@@ -261,7 +254,6 @@ const ActionsTable = () => {
             </table>
           </div>
 
-          {/* View All Button */}
           <div className="px-6 py-4 border-t border-gray-200">
             <button
               onClick={handleViewAllActions}

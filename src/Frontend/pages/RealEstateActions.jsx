@@ -1,4 +1,3 @@
-// src/Frontend/pages/RealEstateActions.jsx - Complete and Fixed Implementation
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -15,6 +14,7 @@ const RealEstateActions = ({ user, onLogout }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [actionToDelete, setActionToDelete] = useState(null);
   const [permissions, setPermissions] = useState({});
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,7 +56,6 @@ const RealEstateActions = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // Fetch all required data
       const [leadsResponse, usersResponse] = await Promise.all([
         fetch('http://localhost:8000/api/real-estate/leads', {
           headers: { 'Authorization': `Basic ${token}` },
@@ -72,7 +71,6 @@ const RealEstateActions = ({ user, onLogout }) => {
         const leadsData = await leadsResponse.json();
         setLeads(leadsData);
         
-        // Fetch actions for all leads
         for (const lead of leadsData) {
           try {
             const [callsResponse, meetingsResponse] = await Promise.all([
@@ -120,7 +118,6 @@ const RealEstateActions = ({ user, onLogout }) => {
           }
         }
         
-        // Sort by date descending
         allActions.sort((a, b) => new Date(b.date) - new Date(a.date));
         setActions(allActions);
       } else if (leadsResponse.status === 403) {
@@ -173,17 +170,10 @@ const RealEstateActions = ({ user, onLogout }) => {
   };
 
   const handleDeleteAction = async () => {
-    if (!actionToDelete) return;
+    if (!actionToDelete || deleteLoading) return;
 
-    // Note: Delete endpoints need to be added to the backend API
-    // For now, we'll show an alert that this feature is not yet implemented
-    alert('Delete functionality will be available once the backend delete endpoints are added to the leads.py file');
-    setShowDeleteModal(false);
-    setActionToDelete(null);
-    return;
+    setDeleteLoading(true);
 
-    /* 
-    // Uncomment this when the delete endpoints are added to leads.py:
     try {
       const token = localStorage.getItem('auth_token');
       const endpoint = actionToDelete.type === 'call' 
@@ -203,16 +193,24 @@ const RealEstateActions = ({ user, onLogout }) => {
         ));
         setShowDeleteModal(false);
         setActionToDelete(null);
+        
       } else if (response.status === 403) {
-        alert('You do not have permission to delete actions');
+      } else if (response.status === 404) {
+        setActions(actions.filter(action => 
+          !(action.type === actionToDelete.type && action.id === actionToDelete.id)
+        ));
+        setShowDeleteModal(false);
+        setActionToDelete(null);
       } else {
-        alert('Failed to delete action');
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.detail || 'Failed to delete action');
       }
     } catch (error) {
       console.error('Failed to delete action:', error);
-      alert('Failed to delete action');
+      alert('Failed to delete action. Please check your connection and try again.');
+    } finally {
+      setDeleteLoading(false);
     }
-    */
   };
 
   const handleDeleteClick = (action) => {
@@ -232,7 +230,6 @@ const RealEstateActions = ({ user, onLogout }) => {
     navigate('/real-estate/actions/add');
   };
 
-  // Delete Confirmation Modal
   const DeleteModal = () => {
     if (!showDeleteModal || !actionToDelete) return null;
 
@@ -257,9 +254,14 @@ const RealEstateActions = ({ user, onLogout }) => {
             <div className="space-y-3">
               <button
                 onClick={handleDeleteAction}
-                className="w-full bg-red-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 transition-colors"
+                disabled={deleteLoading}
+                className={`w-full py-3 px-4 rounded-xl font-medium transition-colors ${
+                  deleteLoading 
+                    ? 'bg-gray-400 cursor-not-allowed text-white' 
+                    : 'bg-red-500 text-white hover:bg-red-700'
+                }`}
               >
-                Yes, Delete Action
+                {deleteLoading ? 'Deleting...' : 'Yes, Delete Action'}
               </button>
               
               <button
@@ -267,7 +269,8 @@ const RealEstateActions = ({ user, onLogout }) => {
                   setShowDeleteModal(false);
                   setActionToDelete(null);
                 }}
-                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                disabled={deleteLoading}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -278,7 +281,6 @@ const RealEstateActions = ({ user, onLogout }) => {
     );
   };
 
-  // Action Detail Modal
   const ActionModal = () => {
     if (!showModal || !selectedAction) return null;
 
@@ -398,10 +400,10 @@ const RealEstateActions = ({ user, onLogout }) => {
       <Sidebar user={user} onLogout={onLogout} />
       
       <div className="flex-1 flex flex-col">
-        <header className="px-6 py-8">
+        <header className="px-6 lg:px-6 py-8 pl-20 lg:pl-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-medium text-gray-900">Actions Management</h1>
+              <h1 className="text-lg font-medium text-gray-900">Meetings/Calls Management</h1>
               <p className="text-gray-600 mt-1">
                 Manage calls and meetings with leads
               </p>
@@ -411,7 +413,7 @@ const RealEstateActions = ({ user, onLogout }) => {
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden w-[385px] sm:w-auto">
               <div className="px-6 py-4 flex items-center justify-between">
                 <h2 className="text-lg font-medium text-gray-900">All Actions</h2>
                 {permissions.canWrite && (

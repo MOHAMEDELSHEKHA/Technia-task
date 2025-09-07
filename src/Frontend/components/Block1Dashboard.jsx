@@ -1,4 +1,3 @@
-// src/Frontend/components/Block1Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, DollarSign, UserCheck, Settings } from 'lucide-react';
@@ -8,7 +7,6 @@ const Block1Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch user permissions on component mount
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
@@ -33,7 +31,6 @@ const Block1Dashboard = () => {
     fetchPermissions();
   }, []);
 
-  // Check if user has read permission for a specific module/feature
   const hasReadPermission = (moduleId, featureId) => {
     return permissions.some(
       perm => perm.module_id === moduleId && 
@@ -42,7 +39,6 @@ const Block1Dashboard = () => {
     );
   };
 
-  // Define all possible module cards
   const moduleCards = [
     {
       id: 'employees',
@@ -52,8 +48,8 @@ const Block1Dashboard = () => {
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600',
       path: '/hr/employees',
-      moduleId: 2, // HR module
-      featureId: 1, // Employees feature
+      moduleId: 2, 
+      featureId: 1,
     },
     {
       id: 'salaries',
@@ -63,8 +59,8 @@ const Block1Dashboard = () => {
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600',
       path: '/hr/salaries',
-      moduleId: 2, // HR module
-      featureId: 2, // Salaries feature
+      moduleId: 2, 
+      featureId: 2, 
     },
     {
       id: 'leads',
@@ -74,8 +70,8 @@ const Block1Dashboard = () => {
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600',
       path: '/real-estate/leads',
-      moduleId: 1, // Real Estate module
-      featureId: 1, // Leads feature
+      moduleId: 1, 
+      featureId: 1, 
     },
     {
       id: 'actions',
@@ -85,12 +81,11 @@ const Block1Dashboard = () => {
       bgColor: 'bg-green-100',
       iconColor: 'text-green-600',
       path: '/real-estate/actions',
-      moduleId: 1, // Real Estate module
-      featureId: 2, // Actions feature
+      moduleId: 1, 
+      featureId: 2, 
     }
   ];
 
-  // Filter cards based on permissions
   const visibleCards = moduleCards.filter(card => 
     hasReadPermission(card.moduleId, card.featureId)
   );
@@ -103,7 +98,7 @@ const Block1Dashboard = () => {
     return (
       <div className="py-4 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-wrap gap-4 sm:gap-6 justify-center sm:justify-start">
+          <div className="flex flex-wrap gap-4 sm:gap-6 justify-center sm:justify-start ">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 w-full sm:w-auto min-w-48 animate-pulse">
                 <div className="flex flex-col items-center text-center">
@@ -122,8 +117,7 @@ const Block1Dashboard = () => {
   return (
     <div className="py-8 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        {/* Module Cards - Full width layout */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="sm:grid sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {visibleCards.map((card) => {
             const IconComponent = card.icon;
             
@@ -131,21 +125,18 @@ const Block1Dashboard = () => {
               <div
                 key={card.id}
                 onClick={() => handleCardClick(card.path)}
-                className="bg-white rounded-lg border border-white hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-pointer p-6 w-full my-4"
+                className="bg-white rounded-lg border border-white hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-pointer p-6 w-[385px] sm:w-auto "
               >
                 <div className="flex items-start justify-between mb-4">
-                  {/* Left side - Title */}
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     {card.title}
                   </h3>
                   
-                  {/* Right side - Icon */}
                   <div className={`${card.bgColor} rounded-lg p-2 flex items-center justify-center flex-shrink-0`}>
                     <IconComponent className={`h-6 w-6 sm:h-7 sm:w-7 ${card.iconColor}`} />
                   </div>
                 </div>
                 
-                {/* Bottom - Subtitle */}
                 <p className="text-xs sm:text-sm text-gray-600 text-left">
                   {card.subtitle}
                 </p>
@@ -154,7 +145,6 @@ const Block1Dashboard = () => {
           })}
         </div>
         
-        {/* Show message if no cards available */}
         {visibleCards.length === 0 && !loading && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center my-8">
             <p className="text-gray-600">No modules available based on your current permissions.</p>

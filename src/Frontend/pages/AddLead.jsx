@@ -1,4 +1,3 @@
-// src/Frontend/pages/AddLead.jsx - Enhanced with Action Scheduling
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -32,7 +31,7 @@ const AddLead = ({ user, onLogout }) => {
     lead_stage: ''
   });
   const [actionFormData, setActionFormData] = useState({
-    action_type: '', // 'call' or 'meeting'
+    action_type: '', 
     date: '',
     time: '',
     status_id: ''
@@ -196,7 +195,6 @@ const AddLead = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      // Prepare data for submission
       const submitData = {
         name: formData.name.trim(),
         lead_phone: formData.lead_phone.trim(),
@@ -206,7 +204,6 @@ const AddLead = ({ user, onLogout }) => {
         assigned_to: parseInt(formData.assigned_to)
       };
 
-      // Add optional fields if they have values
       if (formData.lead_type) {
         submitData.lead_type = parseInt(formData.lead_type);
       }
@@ -234,7 +231,7 @@ const AddLead = ({ user, onLogout }) => {
         console.log('Lead created successfully:', newLead);
         setCreatedLeadId(newLead.lead_id);
         
-        // If lead stage is "Action Taken" (id: 3) and user has actions permission
+        
         if (formData.lead_stage === '3' && hasActionsPermission) {
           setShowActionModal(true);
         } else {
@@ -499,7 +496,6 @@ const AddLead = ({ user, onLogout }) => {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl">
-              {/* Header */}
               <div className="text-center pt-8 pb-6 px-8">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <UserCheck className="w-8 h-8 text-blue-600" />
@@ -508,7 +504,6 @@ const AddLead = ({ user, onLogout }) => {
                 <p className="text-sm text-gray-500">Fill in the lead details</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="px-8 pb-8">
                 {error && (
                   <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
@@ -517,7 +512,6 @@ const AddLead = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-4">
-                  {/* Phone Number */}
                   <div>
                     <label htmlFor="lead_phone" className="block text-sm font-medium text-gray-600 mb-2">
                       Phone Number <span className="text-red-500">*</span>
@@ -534,7 +528,6 @@ const AddLead = ({ user, onLogout }) => {
                     />
                   </div>
 
-                  {/* Name */}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-2">
                       Full Name <span className="text-red-500">*</span>
@@ -551,7 +544,6 @@ const AddLead = ({ user, onLogout }) => {
                     />
                   </div>
 
-                  {/* Email and Gender - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-2">
@@ -588,7 +580,6 @@ const AddLead = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Job Title */}
                   <div>
                     <label htmlFor="job_title" className="block text-sm font-medium text-gray-600 mb-2">
                       Job Title <span className="text-red-500">*</span>
@@ -605,7 +596,6 @@ const AddLead = ({ user, onLogout }) => {
                     />
                   </div>
 
-                  {/* Lead Type, Status, and Stage - Grid Layout */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor="lead_type" className="block text-sm font-medium text-gray-600 mb-2">
@@ -668,7 +658,6 @@ const AddLead = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Show action warning if Action Taken is selected */}
                   {formData.lead_stage === '3' && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                       <div className="flex items-center">
@@ -680,7 +669,6 @@ const AddLead = ({ user, onLogout }) => {
                     </div>
                   )}
 
-                  {/* Assigned To */}
                   <div>
                     <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-600 mb-2">
                       Assign To User <span className="text-red-500">*</span>
@@ -703,7 +691,6 @@ const AddLead = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="mt-8 space-y-3">
                   <button
                     type="submit"
